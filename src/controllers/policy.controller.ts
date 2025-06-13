@@ -55,6 +55,19 @@ export const authorizePolicy = async (req: Request, res: Response) => {
         error: 'Datos incompletos o inválidos'
       });
     }
+    // Verificar si ya existe una póliza vigente para este carro
+    const carId = carData.car_id || 0;
+    const hoy = new Date();
+    const hoyStr = hoy.toISOString().slice(0, 10); // YYYY-MM-DD
+    const [vigente]: any = await pool.query(
+      'SELECT * FROM policies WHERE car_id = ? AND policy_status = ? AND end_date >= ?',
+      [carId, 'APPROVED', hoyStr]
+    );
+    if (vigente && vigente.length > 0) {
+      return res.status(409).json({
+        error: 'Ya existe una póliza vigente para este vehículo.'
+      });
+    }
     // Fechas
     const ahora = new Date();
     const expiracion = new Date();

@@ -5,9 +5,17 @@
     "version": "1.0.0",
     "description": "Documentacion de endpoints temporales para emision de polizas RCV"
   },
+  "tags": [
+    { "name": "Autenticación", "description": "Operaciones de login y autenticación" },
+    { "name": "Cotizacion", "description": "Cotización de pólizas RCV" },
+    { "name": "Verificar placa", "description": "Verificación de placas y duplicados" },
+    { "name": "SyPago", "description": "Integración con SyPago (pagos y OTP)" },
+    { "name": "Póliza", "description": "Emisión y confirmación de pólizas" }
+  ],
   "paths": {
     "/auth": {
       "post": {
+        "tags": ["Autenticación"],
         "summary": "Autenticación de usuario",
         "requestBody": {
           "required": true,
@@ -49,6 +57,7 @@
     },
     "/cotizacion": {
       "post": {
+        "tags": ["Cotizacion"],
         "summary": "Solicitar cotización RCV",
         "security": [{ "bearerAuth": [] }],
         "requestBody": {
@@ -178,6 +187,7 @@
     },
     "/verify": {
       "post": {
+        "tags": ["Verificar placa"],
         "summary": "Verificar si una placa ya está asociada a una póliza previa",
         "security": [{ "bearerAuth": [] }],
         "requestBody": {
@@ -240,6 +250,7 @@
     },
     "/sypago/auth": {
       "post": {
+        "tags": ["SyPago"],
         "summary": "Obtener token SyPago",
         "description": "Obtiene un token de autenticación de SyPago. No requiere cuerpo.",
         "responses": {
@@ -248,9 +259,10 @@
         }
       }
     },
-    "/sypago/bankOptions": {
+    "/bankOptions": {
       "get": {
-        "summary": "Obtener bancos disponibles SyPago",
+        "tags": ["SyPago"],
+        "summary": "Obtener bancos disponibles",
         "description": "Obtiene la lista de bancos disponibles desde SyPago.",
         "responses": {
           "200": { "description": "Lista de bancos obtenida correctamente" },
@@ -258,9 +270,10 @@
         }
       }
     },
-    "/sypago/tasa": {
+    "/tasa": {
       "get": {
-        "summary": "Obtener tasa BCV SyPago",
+        "tags": ["SyPago"],
+        "summary": "Obtener tasa BCV",
         "description": "Obtiene la tasa BCV desde SyPago.",
         "responses": {
           "200": { "description": "Tasa BCV obtenida correctamente" },
@@ -268,9 +281,10 @@
         }
       }
     },
-    "/sypago/otp": {
+    "/otp/sypago": {
       "post": {
-        "summary": "Solicitar código OTP SyPago",
+        "tags": ["SyPago"],
+        "summary": "Solicitar Código OTP (SyPago)",
         "description": "Solicita un código OTP a SyPago. Requiere autenticación previa en /sypago/auth.",
         "security": [ { "sypagoToken": [] } ],
         "requestBody": {
@@ -375,33 +389,10 @@
         }
       }
     },
-    "/sypago/otp/code": {
-      "post": {
-        "summary": "Validar código OTP SyPago",
-        "description": "Valida el código OTP recibido por SyPago. Requiere autenticación previa en /sypago/auth.",
-        "security": [ { "sypagoToken": [] } ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": { "type": "object" },
-              "example": {
-                "otp": "123456",
-                "transaction_id": "abc123"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": { "description": "OTP validado correctamente" },
-          "401": { "description": "No SyPago token. Autentíquese primero en /sypago/auth." },
-          "500": { "description": "Error al conectar con la API de SyPago" }
-        }
-      }
-    },
     "/verify/Code": {
       "post": {
-        "summary": "Validar OTP y ejecutar pago SyPago",
+        "tags": ["SyPago"],
+        "summary": "Validar OTP y Ejecutar Pago",
         "description": "Valida el OTP y ejecuta el pago a través de SyPago.",
         "security": [ { "sypagoToken": [] } ],
         "requestBody": {
@@ -555,7 +546,8 @@
     },
     "/getNotifications": {
       "post": {
-        "summary": "Verificar resultado de transacción SyPago",
+        "tags": ["SyPago"],
+        "summary": "Verificar Resultado de Transacción",
         "description": "Consulta el estado de una transacción SyPago por su id_transaction.",
         "security": [ { "sypagoToken": [] } ],
         "requestBody": {
@@ -616,6 +608,8 @@
     },
     "/authorize": {
       "post": {
+        "tags": ["Póliza"],
+        "security": [{ "bearerAuth": [] }],
         "summary": "Emitir Póliza",
         "description": "Autoriza la emisión de la póliza utilizando los datos temporales de la cotización.",
         "requestBody": {
@@ -754,6 +748,8 @@
     },
     "/confirm": {
       "post": {
+        "tags": ["Póliza"],
+        "security": [{ "bearerAuth": [] }],
         "summary": "Confirmar Póliza Emitida",
         "description": "Confirma el estado de una póliza ya emitida. No genera PDF.",
         "requestBody": {

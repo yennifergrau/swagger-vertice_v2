@@ -15,6 +15,7 @@ import sypagoRouter from './routes/sypago';
 import getNotificationsRouter from './routes/getNotifications';
 import policyRouter from './routes/policy';
 import confirmPolicyRouter from './routes/confirm';
+import publicSypagoRouter from './routes/publicSypago'; // Importar el router publicSypago
 
 
 dotenv.config();
@@ -43,6 +44,7 @@ app.use('/sypago', sypagoRouter);
 app.use('/getNotifications', getNotificationsRouter);
 app.use('/authorize', policyRouter);
 app.use('/confirm', confirmPolicyRouter);
+app.use('/', publicSypagoRouter); // Montar el router publicSypago en la raíz
 
 app.post('/authorize', (req, res) => {
   // Lógica para manejar la autorización
@@ -71,12 +73,6 @@ app.listen(PORT, () => {
   console.log(`Servidor corriendo en http://localhost:${PORT}`);
 });
 
-// db.query('SELECT 1')
-//   .then(() => console.log("Conexion DB MySQL Ready"))
-//   .catch((err: any) => console.error("Error connecting to DB:", err));
-
-// --- Comprobación de conexión MySQL (del ejemplo anterior) ---
-// import pool from './db';
 pool.getConnection()
   .then(connection => {
     console.log('¡Conexión exitosa a la base de datos MySQL!');
