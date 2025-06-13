@@ -98,8 +98,8 @@
                         "gearbox": "Automático",
                         "carroceria_serial_number": "1234567890",
                         "motor_serial_number": "0987654321",
-                        "type_vehiculo": "Sedan",
-                        "use": "Particular",
+                        "type_vehiculo": "particular",
+                        "use": "Hasta 800 kg. de peso",
                         "passenger_qty": 5,
                         "driver": "Juan Pérez",
                         "use_grua": true
@@ -121,7 +121,7 @@
                         "policy_holder_state": "Miranda",
                         "policy_holder_city": "Caracas",
                         "policy_holder_municipality": "Libertador",
-                        "isseur_store": "Sucursal Centro"
+                        "issuer_store": "Sucursal Centro"
                       },
                       "carData": {
                         "type_plate": "A",
@@ -134,8 +134,8 @@
                         "gearbox": "Manual",
                         "carroceria_serial_number": "1122334455",
                         "motor_serial_number": "5544332211",
-                        "type_vehiculo": "Sedan",
-                        "use": "Particular",
+                        "type_vehiculo": "carga",
+                        "use": "Hasta 2 TM",
                         "passenger_qty": 5,
                         "driver": "Pedro Gómez",
                         "use_grua": false
@@ -150,7 +150,7 @@
                         "insured_state": "Miranda",
                         "insured_city": "Guarenas",
                         "insured_municipality": "Plaza",
-                        "isseur_store": "Sucursal Este"
+                        "issuer_store": "Sucursal Este"
                       }
                     }
                   }

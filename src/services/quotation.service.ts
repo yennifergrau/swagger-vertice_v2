@@ -7,35 +7,101 @@ import { ResultSetHeader } from 'mysql2/promise';
 
 class QuotationService {
   private async calculateQuotation(carData: CarData): Promise<QuotationResult> {
-    // Lógica SIMULADA para calcular la prima y coberturas
-    // En un caso real, esto sería mucho más complejo, usando tablas de tarifas,
-    // reglas de negocio, etc., quizás incluso un servicio externo.
-    let dolarPrima = 0;
-    let bsPrima = 0;
-    let danosPersonas = 0;
-    let danosCosas = 0;
-
-    // Simulación basada en el año y el uso_grua
-    if (carData.year >= 2020 && carData.use_grua) {
-      dolarPrima = 35.00;
-      bsPrima = dolarPrima * 36.5; // Tasa de cambio simulada
-      danosPersonas = 5000;
-      danosCosas = 4000;
-    } else if (carData.year >= 2010) {
-      dolarPrima = 20.50;
-      bsPrima = dolarPrima * 36.35;
-      danosPersonas = 2505;
-      danosCosas = 2000;
-    } else {
-      dolarPrima = 15.00;
-      bsPrima = dolarPrima * 36.20;
-      danosPersonas = 1500;
-      danosCosas = 1000;
+    // Determinar clase y grupo
+    function calcularClaseGrupo(tipoVehiculo: string, uso: string) {
+      let clase = "";
+      let grupo = "";
+      if (tipoVehiculo.toLowerCase() === "particular") {
+        clase = "Particulares";
+        if (uso === "Hasta 800 kg. de peso") grupo = "1";
+        else if (uso === "Más de 800 kg. de peso") grupo = "2";
+        else if (uso === "Casas Móviles con Tracción propia") grupo = "3";
+        else if (uso === "Auto – Escuela") grupo = "4";
+        else if (uso === "Alquiler sin chofer") grupo = "5";
+        else if (uso === "Alquiler con chofer, taxi o por puesto") grupo = "6";
+        else grupo = "1";
+      } else if (tipoVehiculo.toLowerCase().startsWith("carga")) {
+        clase = "Carga (A)";
+        if(uso === "Hasta 2 TM") grupo = "7";
+        else if(uso === "Más de 2 y hasta 5 TM") grupo = "8";
+        else if(uso === "Más de 5 hasta 8 TM") grupo = "9";
+        else if(uso === "Más de 8 hasta 12 TM") grupo = "10";
+        else if(uso === "Más de 12 TM") grupo = "11";
+        else grupo = "7";
+      } else if (tipoVehiculo.toLowerCase().startsWith("autobus")) {
+        clase = "Autobuses (B)";
+        grupo = uso === "suburbano" ? "13"
+               : uso === "interurbano" ? "14"
+               : "12";
+      } else if (tipoVehiculo.toLowerCase().startsWith("minibus")) {
+        clase = "Minibuses (B)";
+        grupo = uso === "suburbano" ? "16"
+               : uso === "interurbano" ? "17"
+               : "15";
+      } else if (tipoVehiculo.toLowerCase().includes("foráneas")) {
+        clase = "Vehículos Rutas Foráneas";
+        grupo = "18";
+      } else if (tipoVehiculo.toLowerCase().includes("rústico")) {
+        clase = "Vehículos Rústicos de doble tracción.";
+        grupo = "19";
+      } else if (tipoVehiculo.toLowerCase().includes("otros")) {
+        clase = "Otros Vehículos";
+        grupo = "20";
+      } else if (tipoVehiculo.toLowerCase().includes("motocarro")) {
+        clase = "Moto Carros (C)";
+        grupo = "21";
+      } else if (tipoVehiculo.toLowerCase().includes("sangre")) {
+        clase = "Tracción Sangre";
+        grupo = "22";
+      } else if (tipoVehiculo.toLowerCase().includes("máquinas")) {
+        clase = "Otras Máquinas";
+        grupo = "23";
+      }
+      return { clase, grupo };
     }
 
+    const tipoVehiculo = carData.type_vehiculo;
+    const uso = carData.use || '';
+    const incluirGrua = carData.use_grua || false;
+    const tipoPlaca = carData.type_plate === 'extranjera' ? 'extranjera' : 'nacional';
+    const { clase, grupo } = calcularClaseGrupo(tipoVehiculo, uso);
+
+    console.log('Buscando tarifa con:', { clase, grupo });
+    // Buscar la tarifa correspondiente
+    const [tarifaRows]: any = await pool.query('SELECT * FROM tarifas WHERE clase = ? AND grupo = ?', [clase, grupo]);
+    const tarifa = tarifaRows && tarifaRows[0];
+    if (!tarifa) {
+      throw new Error('No se encontraron tarifas para este tipo de vehículo');
+    }
+
+    // Calcular primas y coberturas según tipo de placa
+    let primaAnualEUR = tipoPlaca === 'extranjera' ? tarifa.extranjera_prima_anual_eur : tarifa.nacional_prima_anual_eur;
+    let primaAnualUSD = tipoPlaca === 'extranjera' ? tarifa.extranjera_prima_anual_usd : tarifa.nacional_prima_anual_usd;
+    let tasaCambioBs = tipoPlaca === 'extranjera' ? tarifa.extranjera_prima_tasa_cambio_bs : tarifa.nacional_prima_tasa_cambio_bs;
+    let danosCosasEUR = tipoPlaca === 'extranjera' ? tarifa.extranjera_danos_cosas_eur : tarifa.nacional_danos_cosas_eur;
+    let danosPersonasEUR = tipoPlaca === 'extranjera' ? tarifa.extranjera_danos_personas_eur : tarifa.nacional_danos_personas_eur;
+    let danosCosasUSD = tipoPlaca === 'extranjera' ? tarifa.extranjera_danos_cosas_usd : tarifa.nacional_danos_cosas_usd;
+    let danosPersonasUSD = tipoPlaca === 'extranjera' ? tarifa.extranjera_danos_personas_usd : tarifa.nacional_danos_personas_usd;
+
+    // Sumar grúa si aplica
+    let primaUSD = Number(primaAnualUSD) || 0;
+    if (incluirGrua && typeof tarifa.prima_servicio_grua_usd === 'number' && tarifa.prima_servicio_grua_usd > 0) {
+      primaUSD += Number(tarifa.prima_servicio_grua_usd);
+    }
+
+    const totalUSD = parseFloat(primaUSD.toFixed(2));
+    const totalBs = parseFloat((totalUSD * Number(tasaCambioBs || 0)).toFixed(2));
+    const totalEuro = parseFloat((Number(primaAnualEUR || 0)).toFixed(2));
+
     return {
-      primaTotal: { dolar: parseFloat(dolarPrima.toFixed(2)), bs: parseFloat(bsPrima.toFixed(2)) },
-      coberturas: { danosPersonas, danosCosas }
+      primaTotal: {
+        dolar: totalUSD,
+        bs: totalBs
+      },
+      coberturas: {
+        danosPersonas: danosPersonasUSD,
+        danosCosas: danosCosasUSD
+      }
     };
   }
 
