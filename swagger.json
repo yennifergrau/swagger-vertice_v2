@@ -1,0 +1,324 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "API Emision RCV - Vertice Seguros",
+    "version": "1.0.0",
+    "description": "Documentacion de endpoints temporales para emision de polizas RCV"
+  },
+  "paths": {
+    "/auth": {
+      "post": {
+        "summary": "Autenticación de usuario",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "username": { "type": "string", "example": "admin" },
+                  "password": { "type": "string", "example": "admin1234" }
+                },
+                "required": ["username", "password"]
+              },
+              "example": {
+                "username": "admin",
+                "password": "admin1234"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Token JWT generado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "access_token": { "type": "string" },
+                    "exp": { "type": "integer" }
+                  }
+                }
+              }
+            }
+          },
+          "401": { "description": "Credenciales inválidas" }
+        }
+      }
+    },
+    "/cotizacion": {
+      "post": {
+        "summary": "Solicitar cotización RCV",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "data": {
+                    "type": "object",
+                    "properties": {
+                      "generalData": { "$ref": "#/components/schemas/GeneralData" },
+                      "carData": { "$ref": "#/components/schemas/CarData" },
+                      "generalDataTomador": { "$ref": "#/components/schemas/GeneralDataTomador" }
+                    },
+                    "required": ["generalData", "carData"]
+                  }
+                },
+                "required": ["data"]
+              },
+              "examples": {
+                "Sin tomador": {
+                  "summary": "Cotización sin tomador (solo titular)",
+                  "value": {
+                    "data": {
+                      "generalData": {
+                        "policy_holder_type_document": "V",
+                        "policy_holder_document_number": 12345678,
+                        "policy_holder_phone": "04141234567",
+                        "policy_holder_email": "titular@email.com",
+                        "policy_holder": "Juan Pérez",
+                        "policy_holder_address": "Calle 1",
+                        "policy_holder_state": "Miranda",
+                        "policy_holder_city": "Caracas",
+                        "policy_holder_municipality": "Libertador",
+                        "isseur_store": "Sucursal Centro"
+                      },
+                      "carData": {
+                        "type_plate": "A",
+                        "plate": "ABC123",
+                        "brand": "Toyota",
+                        "model": "Corolla",
+                        "version": "LE",
+                        "year": 2022,
+                        "color": "Blanco",
+                        "gearbox": "Automático",
+                        "carroceria_serial_number": "1234567890",
+                        "motor_serial_number": "0987654321",
+                        "type_vehiculo": "Sedan",
+                        "use": "Particular",
+                        "passenger_qty": 5,
+                        "driver": "Juan Pérez",
+                        "use_grua": true
+                      }
+                    }
+                  }
+                },
+                "Con tomador": {
+                  "summary": "Cotización con tomador distinto al titular",
+                  "value": {
+                    "data": {
+                      "generalData": {
+                        "policy_holder_type_document": "V",
+                        "policy_holder_document_number": 12345678,
+                        "policy_holder_phone": "04141234567",
+                        "policy_holder_email": "titular@email.com",
+                        "policy_holder": "Juan Pérez",
+                        "policy_holder_address": "Calle 1",
+                        "policy_holder_state": "Miranda",
+                        "policy_holder_city": "Caracas",
+                        "policy_holder_municipality": "Libertador",
+                        "isseur_store": "Sucursal Centro"
+                      },
+                      "carData": {
+                        "type_plate": "A",
+                        "plate": "DEF456",
+                        "brand": "Chevrolet",
+                        "model": "Aveo",
+                        "version": "LS",
+                        "year": 2020,
+                        "color": "Negro",
+                        "gearbox": "Manual",
+                        "carroceria_serial_number": "1122334455",
+                        "motor_serial_number": "5544332211",
+                        "type_vehiculo": "Sedan",
+                        "use": "Particular",
+                        "passenger_qty": 5,
+                        "driver": "Pedro Gómez",
+                        "use_grua": false
+                      },
+                      "generalDataTomador": {
+                        "type_document": "E",
+                        "insured_document": 87654321,
+                        "insured_phone": "04149876543",
+                        "insured_email": "tomador@email.com",
+                        "insured": "Pedro Gómez",
+                        "insured_address": "Calle 2",
+                        "insured_state": "Miranda",
+                        "insured_city": "Guarenas",
+                        "insured_municipality": "Plaza",
+                        "isseur_store": "Sucursal Este"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Cotización generada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QuotationResult"
+                }
+              }
+            }
+          },
+          "400": { "description": "Request Body incompleto" },
+          "401": { "description": "No autorizado" },
+          "500": { "description": "Error interno del servidor" }
+        }
+      }
+    },
+    "/verify": {
+      "post": {
+        "summary": "Verificar si una placa ya está asociada a una póliza previa",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "policy_holder_type_document": { "type": "string", "example": "V" },
+                  "policy_holder_document_number": { "type": "string", "example": "12345678" },
+                  "plate": { "type": "string", "example": "ABC123" }
+                },
+                "required": ["policy_holder_type_document", "policy_holder_document_number", "plate"]
+              },
+              "examples": {
+                "Placa no existe": {
+                  "summary": "Placa no registrada",
+                  "value": {
+                    "policy_holder_type_document": "V",
+                    "policy_holder_document_number": "12345678",
+                    "plate": "NOEXISTE1"
+                  }
+                },
+                "Placa ya existe": {
+                  "summary": "Placa ya asociada a póliza",
+                  "value": {
+                    "policy_holder_type_document": "V",
+                    "policy_holder_document_number": "12345678",
+                    "plate": "ABC123"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Resultado de la verificación de la placa",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": { "type": "string", "example": "La placa ya existe" }
+                  }
+                },
+                "examples": {
+                  "Placa no existe": { "value": { "message": "La placa no existe" } },
+                  "Placa ya existe": { "value": { "message": "La placa ya existe" } }
+                }
+              }
+            }
+          },
+          "400": { "description": "Faltan datos requeridos" },
+          "401": { "description": "No autorizado" },
+          "500": { "description": "Error interno del servidor" }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    },
+    "schemas": {
+      "GeneralData": {
+        "type": "object",
+        "properties": {
+          "policy_holder_type_document": { "type": "string" },
+          "policy_holder_document_number": { "type": "integer" },
+          "policy_holder_phone": { "type": "string" },
+          "policy_holder_email": { "type": "string" },
+          "policy_holder": { "type": "string" },
+          "policy_holder_address": { "type": "string" },
+          "policy_holder_state": { "type": "string" },
+          "policy_holder_city": { "type": "string" },
+          "policy_holder_municipality": { "type": "string" },
+          "issuer_store": { "type": "string" }
+        },
+        "required": ["policy_holder_type_document", "policy_holder_document_number", "policy_holder", "policy_holder_address", "policy_holder_state", "policy_holder_city"]
+      },
+      "CarData": {
+        "type": "object",
+        "properties": {
+          "type_plate": { "type": "string" },
+          "plate": { "type": "string" },
+          "brand": { "type": "string" },
+          "model": { "type": "string" },
+          "version": { "type": "string" },
+          "year": { "type": "integer" },
+          "color": { "type": "string" },
+          "gearbox": { "type": "string" },
+          "carroceria_serial_number": { "type": "string" },
+          "motor_serial_number": { "type": "string" },
+          "type_vehiculo": { "type": "string" },
+          "use": { "type": "string" },
+          "passenger_qty": { "type": "integer" },
+          "driver": { "type": "string" },
+          "use_grua": { "type": "boolean" }
+        },
+        "required": ["type_plate", "plate", "brand", "model", "year", "carroceria_serial_number", "motor_serial_number", "type_vehiculo", "use", "passenger_qty", "driver", "use_grua"]
+      },
+      "GeneralDataTomador": {
+        "type": "object",
+        "properties": {
+          "type_document": { "type": "string" },
+          "insured_document": { "type": "integer" },
+          "insured_phone": { "type": "string" },
+          "insured_email": { "type": "string" },
+          "insured": { "type": "string" },
+          "insured_address": { "type": "string" },
+          "insured_state": { "type": "string" },
+          "insured_city": { "type": "string" },
+          "insured_municipality": { "type": "string" },
+          "issuer_store": { "type": "string" }
+        }
+      },
+      "QuotationResult": {
+        "type": "object",
+        "properties": {
+          "primaTotal": {
+            "type": "object",
+            "properties": {
+              "dolar": { "type": "number" },
+              "bs": { "type": "number" }
+            }
+          },
+          "coberturas": {
+            "type": "object",
+            "properties": {
+              "danosPersonas": { "type": "number" },
+              "danosCosas": { "type": "number" }
+            }
+          }
+        }
+      }
+    }
+  }
+}

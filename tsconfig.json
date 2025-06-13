@@ -1,0 +1,22 @@
+// tsconfig.json
+{
+  "compilerOptions": {
+    // ... otras opciones ...
+    "target": "es2017",
+    "module": "commonjs",
+    "lib": ["es6", "dom"],
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    // Asegúrate de que "typeRoots" esté configurado para buscar en src/types
+    "typeRoots": ["./node_modules/@types", "./src/types"],
+    "resolveJsonModule": true
+  },
+  "include": [
+    "src/**/*" // Esto debería incluir src/types
+  ],
+  "exclude": ["node_modules", "dist"]
+}
