@@ -18,21 +18,22 @@ export const verifyPlateCtrl = async (req: Request, res: Response) => {
       return res.status(400).json({ message: 'Faltan datos requeridos' });
     }
 
-    // Consulta si la placa existe en la tabla orders
-    const [rows]: any = await pool.query(
-      `SELECT id FROM orders WHERE plate = ? AND policy_holder_type_document = ? AND policy_holder_document_number = ?`,
-      [
-        plate ?? null,
-        policy_holder_type_document ?? null,
-        policy_holder_document_number ?? null,
-      ]
-    );
-
-    if (rows.length === 0) {
+    // Buscar el auto por placa en la tabla cars
+    const [cars]: any = await pool.query('SELECT id FROM cars WHERE plate = ?', [plate]);
+    if (!Array.isArray(cars) || cars.length === 0) {
       return res.json({ message: 'La placa no existe' });
-    } else {
+    }
+    const carId = cars[0].id;
+
+    // Buscar si existe una orden asociada a esa placa y titular en la tabla orders
+    const [orders]: any = await pool.query(
+      'SELECT id FROM orders WHERE car_id = ? AND policy_holder_type_document = ? AND policy_holder_document_number = ?',
+      [carId, policy_holder_type_document, policy_holder_document_number]
+    );
+    if (Array.isArray(orders) && orders.length > 0) {
       return res.json({ message: 'La placa ya existe' });
     }
+    return res.json({ message: 'La placa no existe' });
   } catch (error) {
     return res.status(500).json({
       message: 'Error interno del servidor al verificar placa',
