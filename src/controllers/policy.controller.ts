@@ -83,3 +83,22 @@ export const authorizePolicy = async (req: Request, res: Response) => {
     });
   }
 };
+
+export const confirmPolicy = async (req: Request, res: Response) => {
+  try {
+    const { reference, status } = req.body;
+    try {
+      await require('../services/policy.service').confirmPolicyStatus(reference, status);
+    } catch (e: any) {
+      return res.status(400).json({ message: e.message });
+    }
+    return res.status(200).json({
+      message: 'Confirmación exitosa',
+      status: true,
+      estado: status
+    });
+  } catch (e: any) {
+    console.error('Error al confirmar póliza:', e);
+    return res.status(500).json({ message: 'Error interno del servidor.', error: e.message });
+  }
+};

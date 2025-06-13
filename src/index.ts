@@ -14,6 +14,7 @@ import verifyRouter from './routes/verify';
 import sypagoRouter from './routes/sypago';
 import getNotificationsRouter from './routes/getNotifications';
 import policyRouter from './routes/policy';
+import confirmPolicyRouter from './routes/confirm';
 
 
 dotenv.config();
@@ -41,6 +42,7 @@ app.use('/verify', verifyRouter);
 app.use('/sypago', sypagoRouter);
 app.use('/getNotifications', getNotificationsRouter);
 app.use('/authorize', policyRouter);
+app.use('/confirm', confirmPolicyRouter);
 
 app.post('/authorize', (req, res) => {
   // Lógica para manejar la autorización

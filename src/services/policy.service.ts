@@ -40,3 +40,27 @@ export async function insertPolicy({ order_id, car_id, policy_number, issue_date
   );
   return result.insertId;
 }
+
+// Servicio para confirmar póliza y actualizar estado
+export async function confirmPolicyStatus(reference: string, status: string) {
+  // Validaciones
+  if (!reference || typeof reference !== 'string' || reference.length > 100) {
+    throw new Error('reference es requerido y debe ser un string válido.');
+  }
+  if (!status || typeof status !== 'string' || status.length > 20) {
+    throw new Error('status es requerido y debe ser un string válido.');
+  }
+  const validStatuses = ['APPROVED', 'ERROR', 'PENDING'];
+  if (!validStatuses.includes(status)) {
+    throw new Error(`status debe ser uno de: ${validStatuses.join(', ')}`);
+  }
+  // Actualizar en la base de datos
+  const [result]: any = await pool.query(
+    'UPDATE policies SET policy_status = ? WHERE policy_number = ?',
+    [status, reference]
+  );
+  if (result.affectedRows === 0) {
+    throw new Error('No se encontró la póliza con ese reference.');
+  }
+  return { status, reference };
+}
