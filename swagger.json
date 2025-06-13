@@ -317,24 +317,52 @@
                 },
                 "required": ["creditor_account", "debitor_document_info", "debitor_account", "amount"]
               },
-              "example": {
-                "creditor_account": {
-                  "bank_code": "0001",
-                  "type": "CNTA",
-                  "number": "00014166604867298461"
+              "examples": {
+                "Usuario de prueba": {
+                  "summary": "OTP con usuario de prueba SyPago",
+                  "value": {
+                    "creditor_account": {
+                      "bank_code": "0001",
+                      "type": "CNTA",
+                      "number": "00014166604867298461"
+                    },
+                    "debitor_document_info": {
+                      "type": "V",
+                      "number": "15700584"
+                    },
+                    "debitor_account": {
+                      "bank_code": "0134",
+                      "type": "CELE",
+                      "number": "04241345485"
+                    },
+                    "amount": {
+                      "amt": 20,
+                      "currency": "VES"
+                    }
+                  }
                 },
-                "debitor_document_info": {
-                  "type": "V",
-                  "number": "28131782"
-                },
-                "debitor_account": {
-                  "bank_code": "0134",
-                  "type": "CELE",
-                  "number": "04147232513"
-                },
-                "amount": {
-                  "amt": 20,
-                  "currency": "VES"
+                "Genérico": {
+                  "summary": "OTP con datos genéricos",
+                  "value": {
+                    "creditor_account": {
+                      "bank_code": "0001",
+                      "type": "CNTA",
+                      "number": "00014166604867298461"
+                    },
+                    "debitor_document_info": {
+                      "type": "V",
+                      "number": "28131782"
+                    },
+                    "debitor_account": {
+                      "bank_code": "0134",
+                      "type": "CELE",
+                      "number": "04147232513"
+                    },
+                    "amount": {
+                      "amt": 20,
+                      "currency": "VES"
+                    }
+                  }
                 }
               }
             }
