@@ -1,6 +1,7 @@
 import axios from 'axios';
 import { Request, Response } from 'express';
 import pool from '../db';
+import { savePayment } from '../services/payment.service';
 
 let sypagoAccessToken: string | null = null;
 
@@ -146,7 +147,22 @@ export const verifyCodeAndPay = async (req: Request, res: Response) => {
         }
       }
     );
-    return res.status(200).json({ transaction_id: response.data.transaction_id });
+    // Guardar el pago en la tabla payments
+    // Se asume que policy_id, payment_amount, payment_method están en el body o se pueden obtener
+    const { policy_id, amount, payment_method } = datos;
+    const payment_amount = amount?.amt || 0;
+    const payment_date = new Date().toISOString().slice(0, 19).replace('T', ' ');
+    const transaction_id = response.data.transaction_id;
+    if (policy_id && payment_amount && payment_method && transaction_id) {
+      await savePayment({
+        policy_id,
+        payment_amount,
+        payment_date,
+        payment_method,
+        transaction_id
+      });
+    }
+    return res.status(200).json({ transaction_id });
   } catch (err: any) {
     console.error('Error al validar OTP y ejecutar pago:', err.message);
     if (err.response) {
@@ -162,16 +178,16 @@ export const verifyCodeAndPay = async (req: Request, res: Response) => {
 
 export const notificationSypago = async (req: Request, res: Response) => {
   try {
-    const id_transaction = req.body;
-    const data = id_transaction.id_transaction;
-    console.log('el id encontrado', data);
-
+    const { id_transaction } = req.body;
+    if (!id_transaction) {
+      return res.status(400).json({ error: 'id_transaction es requerido' });
+    }
+    // Consultar a SyPago en tiempo real
     if (!sypagoAccessToken) {
       return res.status(401).json({ status: false, message: 'No SyPago token. Autentíquese primero en /sypago/auth.' });
     }
-
     const response = await axios.get(
-      `https://pruebas.sypago.net:8086/api/v1/transaction/${data}`,
+      `https://pruebas.sypago.net:8086/api/v1/transaction/${id_transaction}`,
       {
         headers: {
           'Content-Type': 'application/json',
@@ -179,12 +195,10 @@ export const notificationSypago = async (req: Request, res: Response) => {
         }
       }
     );
-
-    return res.status(200).json({
-      status: true,
-      message: 'Notificación recibida correctamente',
-      data: response.data
-    });
+    const status = response.data.status || 'PENDING';
+    // Actualizar el status en la base de datos si existe
+    await pool.query('UPDATE payments SET status = ? WHERE transaction_id = ?', [status, id_transaction]);
+    return res.status(200).json({ status });
   } catch (err: any) {
     console.error('Error en la notificación:', err);
     return res.status(500).json({
