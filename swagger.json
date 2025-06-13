@@ -267,6 +267,109 @@
           "500": { "description": "Error al conectar con la API de SyPago" }
         }
       }
+    },
+    "/sypago/otp": {
+      "post": {
+        "summary": "Solicitar código OTP SyPago",
+        "description": "Solicita un código OTP a SyPago. Requiere autenticación previa en /sypago/auth.",
+        "security": [ { "sypagoToken": [] } ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "creditor_account": {
+                    "type": "object",
+                    "properties": {
+                      "bank_code": { "type": "string", "example": "0001" },
+                      "type": { "type": "string", "example": "CNTA" },
+                      "number": { "type": "string", "example": "00014166604867298461" }
+                    },
+                    "required": ["bank_code", "type", "number"]
+                  },
+                  "debitor_document_info": {
+                    "type": "object",
+                    "properties": {
+                      "type": { "type": "string", "example": "V" },
+                      "number": { "type": "string", "example": "28131782" }
+                    },
+                    "required": ["type", "number"]
+                  },
+                  "debitor_account": {
+                    "type": "object",
+                    "properties": {
+                      "bank_code": { "type": "string", "example": "0134" },
+                      "type": { "type": "string", "example": "CELE" },
+                      "number": { "type": "string", "example": "04147232513" }
+                    },
+                    "required": ["bank_code", "type", "number"]
+                  },
+                  "amount": {
+                    "type": "object",
+                    "properties": {
+                      "amt": { "type": "number", "example": 20 },
+                      "currency": { "type": "string", "example": "VES" }
+                    },
+                    "required": ["amt", "currency"]
+                  }
+                },
+                "required": ["creditor_account", "debitor_document_info", "debitor_account", "amount"]
+              },
+              "example": {
+                "creditor_account": {
+                  "bank_code": "0001",
+                  "type": "CNTA",
+                  "number": "00014166604867298461"
+                },
+                "debitor_document_info": {
+                  "type": "V",
+                  "number": "28131782"
+                },
+                "debitor_account": {
+                  "bank_code": "0134",
+                  "type": "CELE",
+                  "number": "04147232513"
+                },
+                "amount": {
+                  "amt": 20,
+                  "currency": "VES"
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "OTP solicitado correctamente" },
+          "401": { "description": "No SyPago token. Autentíquese primero en /sypago/auth." },
+          "500": { "description": "Error al conectar con la API de SyPago" }
+        }
+      }
+    },
+    "/sypago/otp/code": {
+      "post": {
+        "summary": "Validar código OTP SyPago",
+        "description": "Valida el código OTP recibido por SyPago. Requiere autenticación previa en /sypago/auth.",
+        "security": [ { "sypagoToken": [] } ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "type": "object" },
+              "example": {
+                "otp": "123456",
+                "transaction_id": "abc123"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "OTP validado correctamente" },
+          "401": { "description": "No SyPago token. Autentíquese primero en /sypago/auth." },
+          "500": { "description": "Error al conectar con la API de SyPago" }
+        }
+      }
     }
   },
   "components": {
@@ -275,6 +378,12 @@
         "type": "http",
         "scheme": "bearer",
         "bearerFormat": "JWT"
+      },
+      "sypagoToken": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "SyPago-Token",
+        "description": "Token SyPago obtenido desde /sypago/auth o el endpoint correspondiente."
       }
     },
     "schemas": {
