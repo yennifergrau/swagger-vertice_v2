@@ -11,6 +11,7 @@ import { createUser } from './services/auth.service';
 import authRouter from './routes/auth';
 import cotizacionRouter from './routes/cotizacion';
 import verifyRouter from './routes/verify';
+import sypagoRouter from './routes/sypago';
 
 
 dotenv.config();
@@ -35,6 +36,7 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 app.use('/auth', authRouter);
 app.use('/cotizacion', cotizacionRouter);
 app.use('/verify', verifyRouter);
+app.use('/sypago', sypagoRouter);
 
 // Script para crear un usuario de prueba automáticamente si no existe
 (async () => {

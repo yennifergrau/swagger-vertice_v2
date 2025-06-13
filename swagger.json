@@ -85,7 +85,7 @@
                         "policy_holder_state": "Miranda",
                         "policy_holder_city": "Caracas",
                         "policy_holder_municipality": "Libertador",
-                        "isseur_store": "Sucursal Centro"
+                        "issuer_store": "Sucursal Centro"
                       },
                       "carData": {
                         "type_plate": "A",
@@ -235,6 +235,36 @@
           "400": { "description": "Faltan datos requeridos" },
           "401": { "description": "No autorizado" },
           "500": { "description": "Error interno del servidor" }
+        }
+      }
+    },
+    "/sypago/auth": {
+      "post": {
+        "summary": "Obtener token SyPago",
+        "description": "Obtiene un token de autenticación de SyPago. No requiere cuerpo.",
+        "responses": {
+          "200": { "description": "Token obtenido correctamente" },
+          "500": { "description": "Error al conectar con la API de SyPago" }
+        }
+      }
+    },
+    "/sypago/bankOptions": {
+      "get": {
+        "summary": "Obtener bancos disponibles SyPago",
+        "description": "Obtiene la lista de bancos disponibles desde SyPago.",
+        "responses": {
+          "200": { "description": "Lista de bancos obtenida correctamente" },
+          "500": { "description": "Error al conectar con la API de SyPago" }
+        }
+      }
+    },
+    "/sypago/tasa": {
+      "get": {
+        "summary": "Obtener tasa BCV SyPago",
+        "description": "Obtiene la tasa BCV desde SyPago.",
+        "responses": {
+          "200": { "description": "Tasa BCV obtenida correctamente" },
+          "500": { "description": "Error al conectar con la API de SyPago" }
         }
       }
     }
