@@ -28,3 +28,14 @@ export function authenticateToken(req: Request, res: Response, next: NextFunctio
     next();
   });
 }
+
+export function authenticateSypagoToken(req: Request, res: Response, next: NextFunction): void {
+  const sypagoToken = req.headers['sypago-token'];
+  if (!sypagoToken) {
+    res.status(401).json({ message: 'SyPago token no proporcionado. Acceso denegado.' });
+    return;
+  }
+  // Puedes agregar validaciones adicionales si es necesario
+  (req as any).sypagoToken = sypagoToken;
+  next();
+}

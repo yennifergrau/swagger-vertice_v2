@@ -12,6 +12,8 @@ import authRouter from './routes/auth';
 import cotizacionRouter from './routes/cotizacion';
 import verifyRouter from './routes/verify';
 import sypagoRouter from './routes/sypago';
+import getNotificationsRouter from './routes/getNotifications';
+import policyRouter from './routes/policy';
 
 
 dotenv.config();
@@ -37,6 +39,13 @@ app.use('/auth', authRouter);
 app.use('/cotizacion', cotizacionRouter);
 app.use('/verify', verifyRouter);
 app.use('/sypago', sypagoRouter);
+app.use('/getNotifications', getNotificationsRouter);
+app.use('/authorize', policyRouter);
+
+app.post('/authorize', (req, res) => {
+  // Lógica para manejar la autorización
+  res.send('Autorización procesada');
+});
 
 // Script para crear un usuario de prueba automáticamente si no existe
 (async () => {

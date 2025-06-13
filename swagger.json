@@ -398,6 +398,359 @@
           "500": { "description": "Error al conectar con la API de SyPago" }
         }
       }
+    },
+    "/verify/Code": {
+      "post": {
+        "summary": "Validar OTP y ejecutar pago SyPago",
+        "description": "Valida el OTP y ejecuta el pago a través de SyPago.",
+        "security": [ { "sypagoToken": [] } ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "internal_id": { "type": "string", "example": "TX12345678" },
+                  "group_id": { "type": "string", "example": "GR987654321" },
+                  "account": {
+                    "type": "object",
+                    "properties": {
+                      "bank_code": { "type": "string", "example": "0001" },
+                      "type": { "type": "string", "example": "CNTA" },
+                      "number": { "type": "string", "example": "00014166604867298461" }
+                    },
+                    "required": ["bank_code", "type", "number"]
+                  },
+                  "amount": {
+                    "type": "object",
+                    "properties": {
+                      "amt": { "type": "number", "example": 20 },
+                      "currency": { "type": "string", "example": "VES" }
+                    },
+                    "required": ["amt", "currency"]
+                  },
+                  "concept": { "type": "string", "example": "Cobro de Poliza" },
+                  "notification_urls": {
+                    "type": "object",
+                    "properties": {
+                      "web_hook_endpoint": { "type": "string", "example": "https://sypagoMundial.polizaqui.com/getNotifications" }
+                    },
+                    "required": ["web_hook_endpoint"]
+                  },
+                  "receiving_user": {
+                    "type": "object",
+                    "properties": {
+                      "otp": { "type": "string", "example": "123456" },
+                      "document_info": {
+                        "type": "object",
+                        "properties": {
+                          "type": { "type": "string", "example": "V" },
+                          "number": { "type": "string", "example": "28131782" }
+                        },
+                        "required": ["type", "number"]
+                      },
+                      "account": {
+                        "type": "object",
+                        "properties": {
+                          "bank_code": { "type": "string", "example": "0134" },
+                          "type": { "type": "string", "example": "CELE" },
+                          "number": { "type": "string", "example": "04147232513" }
+                        },
+                        "required": ["bank_code", "type", "number"]
+                      }
+                    },
+                    "required": ["otp", "document_info", "account"]
+                  }
+                },
+                "required": ["internal_id", "group_id", "account", "amount", "concept", "notification_urls", "receiving_user"]
+              },
+              "example": {
+                "internal_id": "TX12345678",
+                "group_id": "GR987654321",
+                "account": {
+                  "bank_code": "0001",
+                  "type": "CNTA",
+                  "number": "00014166604867298461"
+                },
+                "amount": {
+                  "amt": 20,
+                  "currency": "VES"
+                },
+                "concept": "Cobro de Poliza",
+                "notification_urls": {
+                  "web_hook_endpoint": "https://sypagoMundial.polizaqui.com/getNotifications"
+                },
+                "receiving_user": {
+                  "otp": "123456",
+                  "document_info": {
+                    "type": "V",
+                    "number": "28131782"
+                  },
+                  "account": {
+                    "bank_code": "0134",
+                    "type": "CELE",
+                    "number": "04147232513"
+                  }
+                }
+              },
+              "examples": {
+                "Usuario de prueba": {
+                  "summary": "Validar OTP y pago con usuario de prueba SyPago",
+                  "value": {
+                    "internal_id": "TX12345678",
+                    "group_id": "GR987654321",
+                    "account": {
+                      "bank_code": "0001",
+                      "type": "CNTA",
+                      "number": "00014166604867298461"
+                    },
+                    "amount": {
+                      "amt": 20,
+                      "currency": "VES"
+                    },
+                    "concept": "Cobro de Poliza",
+                    "notification_urls": {
+                      "web_hook_endpoint": "https://sypagoMundial.polizaqui.com/getNotifications"
+                    },
+                    "receiving_user": {
+                      "otp": "123456",
+                      "document_info": {
+                        "type": "V",
+                        "number": "15700584"
+                      },
+                      "account": {
+                        "bank_code": "0134",
+                        "type": "CELE",
+                        "number": "04241345485"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Transacción ejecutada correctamente",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "transaction_id": { "type": "string", "example": "TXN987654" }
+                  }
+                },
+                "example": {
+                  "transaction_id": "TXN987654"
+                }
+              }
+            }
+          },
+          "401": { "description": "No SyPago token. Autentíquese primero en /sypago/auth." },
+          "500": { "description": "Error al conectar con la API de SyPago" }
+        }
+      }
+    },
+    "/getNotifications": {
+      "post": {
+        "summary": "Verificar resultado de transacción SyPago",
+        "description": "Consulta el estado de una transacción SyPago por su id_transaction.",
+        "security": [ { "sypagoToken": [] } ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "id_transaction": { "type": "string", "example": "TXN987654" }
+                },
+                "required": ["id_transaction"]
+              },
+              "example": {
+                "id_transaction": "TXN987654"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Notificación recibida correctamente",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": { "type": "boolean", "example": true },
+                    "message": { "type": "string", "example": "Notificación recibida correctamente" },
+                    "data": { "type": "object", "example": { "status": "ACCP" } }
+                  }
+                },
+                "examples": {
+                  "Aprobada": {
+                    "summary": "Transacción aceptada",
+                    "value": {
+                      "status": true,
+                      "message": "Notificación recibida correctamente",
+                      "data": { "status": "ACCP" }
+                    }
+                  },
+                  "Rechazada": {
+                    "summary": "Transacción rechazada",
+                    "value": {
+                      "status": true,
+                      "message": "Notificación recibida correctamente",
+                      "data": { "status": "RJCT" }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": { "description": "id_transaction es requerido" },
+          "500": { "description": "Error al consultar el resultado de la transacción" }
+        }
+      }
+    },
+    "/authorize": {
+      "post": {
+        "summary": "Emitir Póliza",
+        "description": "Autoriza la emisión de la póliza utilizando los datos temporales de la cotización.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "isTomador": { "type": "boolean", "example": true },
+                  "orden_id": { "type": "string", "example": "0001002" },
+                  "carData": { "type": "object" },
+                  "generalData": { "type": "object" },
+                  "generalDataTomador": { "type": "object" }
+                },
+                "required": ["isTomador", "orden_id", "carData", "generalData"]
+              },
+              "examples": {
+                "Solo titular": {
+                  "summary": "Emisión solo titular",
+                  "value": {
+                    "isTomador": true,
+                    "orden_id": "0001002",
+                    "generalData": {
+                      "policy_holder_type_document": "V",
+                      "policy_holder_document_number": 12345678,
+                      "policy_holder_phone": "04141234567",
+                      "policy_holder_email": "titular@email.com",
+                      "policy_holder": "Juan Pérez",
+                      "policy_holder_address": "Calle 1",
+                      "policy_holder_state": "Miranda",
+                      "policy_holder_city": "Caracas",
+                      "policy_holder_municipality": "Libertador",
+                      "issuer_store": "Sucursal Centro"
+                    },
+                    "carData": {
+                      "type_plate": "A",
+                      "plate": "ABC123",
+                      "brand": "Toyota",
+                      "model": "Corolla",
+                      "version": "LE",
+                      "year": 2022,
+                      "color": "Blanco",
+                      "gearbox": "Automático",
+                      "carroceria_serial_number": "1234567890",
+                      "motor_serial_number": "0987654321",
+                      "type_vehiculo": "particular",
+                      "use": "Hasta 800 kg. de peso",
+                      "passenger_qty": 5,
+                      "driver": "Juan Pérez",
+                      "use_grua": true
+                    }
+                  }
+                },
+                "Con tomador": {
+                  "summary": "Emisión con tomador distinto al titular",
+                  "value": {
+                    "isTomador": true,
+                    "orden_id": "0001002",
+                    "generalData": {
+                      "policy_holder_type_document": "V",
+                      "policy_holder_document_number": 12345678,
+                      "policy_holder_phone": "04141234567",
+                      "policy_holder_email": "titular@email.com",
+                      "policy_holder": "Juan Pérez",
+                      "policy_holder_address": "Calle 1",
+                      "policy_holder_state": "Miranda",
+                      "policy_holder_city": "Caracas",
+                      "policy_holder_municipality": "Libertador",
+                      "issuer_store": "Sucursal Centro"
+                    },
+                    "carData": {
+                      "type_plate": "A",
+                      "plate": "DEF456",
+                      "brand": "Chevrolet",
+                      "model": "Aveo",
+                      "version": "LS",
+                      "year": 2020,
+                      "color": "Negro",
+                      "gearbox": "Manual",
+                      "carroceria_serial_number": "1122334455",
+                      "motor_serial_number": "5544332211",
+                      "type_vehiculo": "carga",
+                      "use": "Hasta 2 TM",
+                      "passenger_qty": 5,
+                      "driver": "Pedro Gómez",
+                      "use_grua": false
+                    },
+                    "generalDataTomador": {
+                      "type_document": "E",
+                      "insured_document": 87654321,
+                      "insured_phone": "04149876543",
+                      "insured_email": "tomador@email.com",
+                      "insured": "Pedro Gómez",
+                      "insured_address": "Calle 2",
+                      "insured_state": "Miranda",
+                      "insured_city": "Guarenas",
+                      "insured_municipality": "Plaza",
+                      "issuer_store": "Sucursal Este"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Póliza emitida correctamente",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "numero_poliza": {
+                      "type": "string",
+                      "example": "POL123456"
+                    },
+                    "url_pdf": { "type": "string", "example": "https://url.poliza.com/poliza.pdf" },
+                    "estado": { "type": "string", "example": "APPROVED" }
+                  }
+                },
+                "example": {
+                  "numero_poliza": "POL123456",
+                  "url_pdf": "https://url.poliza.com/poliza.pdf",
+                  "estado": "APPROVED"
+                }
+              }
+            }
+          },
+          "400": { "description": "Datos incompletos o inválidos" },
+          "409": { "description": "Conflicto al guardar la póliza" },
+          "500": { "description": "Error interno del servidor" }
+        }
+      }
     }
   },
   "components": {
@@ -411,7 +764,7 @@
         "type": "apiKey",
         "in": "header",
         "name": "SyPago-Token",
-        "description": "Token SyPago obtenido desde /sypago/auth o el endpoint correspondiente."
+        "description": "Token SyPago obtenido desde /sypago/auth o el endpoint correspondiente. Este token debe enviarse en el header 'SyPago-Token' para los endpoints SyPago."
       }
     },
     "schemas": {
