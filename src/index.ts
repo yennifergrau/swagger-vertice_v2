@@ -11,7 +11,9 @@ import { createUser } from './services/auth.service';
 import authRouter from './routes/auth';
 import cotizacionRouter from './routes/cotizacion';
 import verifyRouter from './routes/verify';
+import authSypagoRouter from './routes/sypagoAuth';
 import otpSypagoRouter from './routes/otpSypago';
+import verifyCodeRouter from './routes/verifyCode';
 import getNotificationsRouter from './routes/getNotifications';
 import policyRouter from './routes/policy';
 import confirmPolicyRouter from './routes/confirm';
@@ -42,11 +44,13 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 app.use('/auth', authRouter);
 // Cotizacion
 app.use('/cotizacion', cotizacionRouter);
+// Verifica Placa
+app.use('/verify', verifyRouter); // Verifica Placa
 // Sypago
-app.use('/sypago', );
+app.use('/sypago', authSypagoRouter); // Autenticación Sypago
 app.use('/', publicSypagoRouter); // Bancos y Tasa
-app.use('/otp', otpSypagoRouter);
-app.use('/verify', verifyRouter);
+app.use('/otp', otpSypagoRouter); // Solicita OTP
+app.use('/verify', verifyCodeRouter); // Verificar OTP y Pagar
 app.use('/getNotifications', getNotificationsRouter);
 // Poliza
 app.use('/authorize', policyRouter);
