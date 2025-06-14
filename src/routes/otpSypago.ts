@@ -1,9 +1,9 @@
 import { Router } from 'express';
 import { authenticateSypagoToken } from "../middleware/auth.middleware";
-import { notificationSypago } from '../controllers/sypago.controller';
+import { sypagoOtpRequest } from '../controllers/sypago.controller';
 
 const router = Router();
 
-router.post('/', authenticateSypagoToken, notificationSypago);
+router.post('/sypago', authenticateSypagoToken, sypagoOtpRequest);
 
 export default router;

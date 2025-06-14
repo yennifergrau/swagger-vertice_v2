@@ -1,10 +1,9 @@
 import { Router } from 'express';
-import { tasaBank, bankOptions, sypagoAuth } from '../controllers/sypago.controller';
+import { authenticateSypagoToken } from "../middleware/auth.middleware";
+import { sypagoAuth } from '../controllers/sypago.controller';
 
 const router = Router();
 
-router.post('/auth', sypagoAuth);
-router.get('/bankOptions', bankOptions);
-router.get('/tasa', tasaBank);
+router.post('/auth', authenticateSypagoToken, sypagoAuth);
 
 export default router;

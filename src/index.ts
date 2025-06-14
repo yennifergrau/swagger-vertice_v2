@@ -11,7 +11,7 @@ import { createUser } from './services/auth.service';
 import authRouter from './routes/auth';
 import cotizacionRouter from './routes/cotizacion';
 import verifyRouter from './routes/verify';
-import sypagoRouter from './routes/sypago';
+import otpSypagoRouter from './routes/otpSypago';
 import getNotificationsRouter from './routes/getNotifications';
 import policyRouter from './routes/policy';
 import confirmPolicyRouter from './routes/confirm';
@@ -38,15 +38,20 @@ app.use(morgan('dev'));
 
 // Routes
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
+// Autenticacion
 app.use('/auth', authRouter);
+// Cotizacion
 app.use('/cotizacion', cotizacionRouter);
+// Sypago
+app.use('/sypago', );
+app.use('/', publicSypagoRouter); // Bancos y Tasa
+app.use('/otp', otpSypagoRouter);
 app.use('/verify', verifyRouter);
-app.use('/sypago', sypagoRouter);
 app.use('/getNotifications', getNotificationsRouter);
+// Poliza
 app.use('/authorize', policyRouter);
 app.use('/confirm', confirmPolicyRouter);
-app.use('/', publicSypagoRouter); // Montar el router publicSypago en la raíz
-app.use('/report', reportRouter); // Nuevo endpoint para reporte
+app.use('/report', reportRouter);
 
 app.post('/authorize', (req, res) => {
   // Lógica para manejar la autorización
