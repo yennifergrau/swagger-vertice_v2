@@ -10,7 +10,7 @@ import { createUser } from './services/auth.service';
 //Routes
 import authRouter from './routes/auth';
 import cotizacionRouter from './routes/cotizacion';
-import verifyRouter from './routes/verify';
+import verifyPlateRouter from './routes/verifyPlate';
 import authSypagoRouter from './routes/sypagoAuth';
 import otpSypagoRouter from './routes/otpSypago';
 import verifyCodeRouter from './routes/verifyCode';
@@ -45,7 +45,7 @@ app.use('/auth', authRouter);
 // Cotizacion
 app.use('/cotizacion', cotizacionRouter);
 // Verifica Placa
-app.use('/verify', verifyRouter); // Verifica Placa
+app.use('/verify', verifyPlateRouter); // Verifica Placa
 // Sypago
 app.use('/sypago', authSypagoRouter); // Autenticación Sypago
 app.use('/', publicSypagoRouter); // Bancos y Tasa
@@ -56,11 +56,6 @@ app.use('/getNotifications', getNotificationsRouter);
 app.use('/authorize', policyRouter);
 app.use('/confirm', confirmPolicyRouter);
 app.use('/report', reportRouter);
-
-app.post('/authorize', (req, res) => {
-  // Lógica para manejar la autorización
-  res.send('Autorización procesada');
-});
 
 // Script para crear un usuario de prueba automáticamente si no existe
 (async () => {
