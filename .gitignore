@@ -71,3 +71,5 @@ secrets/
 *.ppk
 *.p12
 *.pfx
+
+public/poliza/*.pdf

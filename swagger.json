@@ -928,15 +928,15 @@
           "primaTotal": {
             "type": "object",
             "properties": {
-              "dolar": { "type": "number" },
-              "bs": { "type": "number" }
+              "dolar": { "type": "number", "example": 118.22 },
+              "bs": { "type": "number", "example": 11955.33 }
             }
           },
           "coberturas": {
             "type": "object",
             "properties": {
-              "danosPersonas": { "type": "number" },
-              "danosCosas": { "type": "number" }
+              "danosPersonas": { "type": "number", "example": 2505 },
+              "danosCosas": { "type": "number", "example": 2000 }
             }
           }
         }

@@ -4,95 +4,133 @@ import { QuotationRequest, QuotationResult, CarData, GeneralData, GeneralDataTom
 import carService from './car.service';
 import { Car } from '../interfaces/car.interface';
 import { ResultSetHeader } from 'mysql2/promise';
+import { getBcvRates } from './bcv.service';
 
 class QuotationService {
   private async calculateQuotation(carData: CarData): Promise<QuotationResult> {
-    // Determinar clase y grupo
+    // Usar la lógica de la referencia para obtener tarifas y coberturas
     function calcularClaseGrupo(tipoVehiculo: string, uso: string) {
-      let clase = "";
-      let grupo = "";
+      let claseGrupo = "";
       if (tipoVehiculo.toLowerCase() === "particular") {
-        clase = "Particulares";
-        if (uso === "Hasta 800 kg. de peso") grupo = "1";
-        else if (uso === "Más de 800 kg. de peso") grupo = "2";
-        else if (uso === "Casas Móviles con Tracción propia") grupo = "3";
-        else if (uso === "Auto – Escuela") grupo = "4";
-        else if (uso === "Alquiler sin chofer") grupo = "5";
-        else if (uso === "Alquiler con chofer, taxi o por puesto") grupo = "6";
-        else grupo = "1";
-      } else if (tipoVehiculo.toLowerCase().startsWith("carga")) {
-        clase = "Carga (A)";
-        if(uso === "Hasta 2 TM") grupo = "7";
-        else if(uso === "Más de 2 y hasta 5 TM") grupo = "8";
-        else if(uso === "Más de 5 hasta 8 TM") grupo = "9";
-        else if(uso === "Más de 8 hasta 12 TM") grupo = "10";
-        else if(uso === "Más de 12 TM") grupo = "11";
-        else grupo = "7";
-      } else if (tipoVehiculo.toLowerCase().startsWith("autobus")) {
-        clase = "Autobuses (B)";
-        grupo = uso === "suburbano" ? "13"
-               : uso === "interurbano" ? "14"
-               : "12";
-      } else if (tipoVehiculo.toLowerCase().startsWith("minibus")) {
-        clase = "Minibuses (B)";
-        grupo = uso === "suburbano" ? "16"
-               : uso === "interurbano" ? "17"
-               : "15";
-      } else if (tipoVehiculo.toLowerCase().includes("foráneas")) {
-        clase = "Vehículos Rutas Foráneas";
-        grupo = "18";
+        if (uso === "Hasta 800 kg. de peso") claseGrupo = "particular_1";
+        else if (uso === "Más de 800 kg. de peso") claseGrupo = "particular_2";
+        else if (uso === "Casas Móviles con Tracción propia") claseGrupo = "particular_3";
+        else if (uso === "Auto – Escuela") claseGrupo = "particular_4";
+        else if (uso === "Alquiler sin chofer") claseGrupo = "particular_5";
+        else if (uso === "Alquiler con chofer, taxi o por puesto") claseGrupo = "particular_6";
+        else claseGrupo = "particular_1";
+      } else if (tipoVehiculo.toLowerCase() === "carga") {
+        if (uso === "Hasta 2 TM") claseGrupo = "carga_7";
+        else if (uso === "Más de 2 y hasta 5 TM") claseGrupo = "carga_8";
+        else if (uso === "Más de 5 hasta 8 TM") claseGrupo = "carga_9";
+        else if (uso === "Más de 8 hasta 12 TM") claseGrupo = "carga_10";
+        else if (uso === "Más de 12 TM") claseGrupo = "carga_11";
+        else claseGrupo = "carga_7";
+      } else if (tipoVehiculo.toLowerCase() === "autobus") {
+        claseGrupo = uso === "suburbano" ? "autobus_13"
+                   : uso === "interurbano" ? "autobus_14"
+                   : "autobus_12";
+      } else if (tipoVehiculo.toLowerCase() === "minibus") {
+        claseGrupo = uso === "suburbano" ? "minibus_16"
+                   : uso === "interurbano" ? "minibus_17"
+                   : "minibus_15";
       } else if (tipoVehiculo.toLowerCase().includes("rústico")) {
-        clase = "Vehículos Rústicos de doble tracción.";
-        grupo = "19";
-      } else if (tipoVehiculo.toLowerCase().includes("otros")) {
-        clase = "Otros Vehículos";
-        grupo = "20";
+        claseGrupo = "rustico";
+      } else if (tipoVehiculo.toLowerCase().includes("moto")) {
+        claseGrupo = "moto";
       } else if (tipoVehiculo.toLowerCase().includes("motocarro")) {
-        clase = "Moto Carros (C)";
-        grupo = "21";
-      } else if (tipoVehiculo.toLowerCase().includes("sangre")) {
-        clase = "Tracción Sangre";
-        grupo = "22";
+        claseGrupo = "motocarro";
       } else if (tipoVehiculo.toLowerCase().includes("máquinas")) {
-        clase = "Otras Máquinas";
-        grupo = "23";
+        claseGrupo = "Móviles";
       }
-      return { clase, grupo };
+      return claseGrupo;
+    }
+
+    function getTarifas() {
+      return {
+        particular_1: { primaAnualEUR: 33, extranjera: { primaAnualEUR: 120 }, servicioGruaUSD: 80 },
+        particular_2: { primaAnualEUR: 39, extranjera: { primaAnualEUR: 142 }, servicioGruaUSD: 80 },
+        particular_3: { primaAnualEUR: 39, extranjera: { primaAnualEUR: 142 }, servicioGruaUSD: 120 },
+        particular_4: { primaAnualEUR: 45, extranjera: { primaAnualEUR: 164 }, servicioGruaUSD: 80 },
+        particular_5: { primaAnualEUR: 102, extranjera: { primaAnualEUR: 371 }, servicioGruaUSD: 80 },
+        particular_6: { primaAnualEUR: 114, extranjera: { primaAnualEUR: 415 }, servicioGruaUSD: 80 },
+        carga_7: { primaAnualEUR: 45, extranjera: { primaAnualEUR: 164 }, servicioGruaUSD: 120 },
+        carga_8: { primaAnualEUR: 84, extranjera: { primaAnualEUR: 306 }, servicioGruaUSD: 140 },
+        carga_9: { primaAnualEUR: 84, extranjera: { primaAnualEUR: 306 }, servicioGruaUSD: 0 },
+        carga_10: { primaAnualEUR: 108, extranjera: { primaAnualEUR: 393 }, servicioGruaUSD: 0 },
+        carga_11: { primaAnualEUR: 108, extranjera: { primaAnualEUR: 393 }, servicioGruaUSD: 0 },
+        autobus_12: { primaAnualEUR: 114, extranjera: { primaAnualEUR: 415 }, servicioGruaUSD: 0 },
+        autobus_13: { primaAnualEUR: 114, extranjera: { primaAnualEUR: 415 }, servicioGruaUSD: 0 },
+        autobus_14: { primaAnualEUR: 258, extranjera: { primaAnualEUR: 939 }, servicioGruaUSD: 0 },
+        minibus_15: { primaAnualEUR: 75, extranjera: { primaAnualEUR: 273 }, servicioGruaUSD: 0 },
+        minibus_16: { primaAnualEUR: 75, extranjera: { primaAnualEUR: 273 }, servicioGruaUSD: 0 },
+        minibus_17: { primaAnualEUR: 168, extranjera: { primaAnualEUR: 611 }, servicioGruaUSD: 0 },
+        rustico: { primaAnualEUR: 75, extranjera: { primaAnualEUR: 273 }, servicioGruaUSD: 100 },
+        moto: { primaAnualEUR: 15, extranjera: { primaAnualEUR: 55 }, servicioGruaUSD: 80 },
+        motocarro: { primaAnualEUR: 21, extranjera: { primaAnualEUR: 76 }, servicioGruaUSD: 80 },
+        Móviles: { primaAnualEUR: 30, extranjera: { primaAnualEUR: 109 }, servicioGruaUSD: 0 }
+      };
+    }
+
+    function getCoberturas() {
+      return {
+        particular_1: { danosCosasEUR: 2000, danosPersonasEUR: 2505 },
+        particular_2: { danosCosasEUR: 2000, danosPersonasEUR: 2505 },
+        particular_3: { danosCosasEUR: 2000, danosPersonasEUR: 2505 },
+        particular_4: { danosCosasEUR: 2252, danosPersonasEUR: 3315 },
+        particular_5: { danosCosasEUR: 2252, danosPersonasEUR: 3315 },
+        particular_6: { danosCosasEUR: 2252, danosPersonasEUR: 3315 },
+        carga_7: { danosCosasEUR: 1877, danosPersonasEUR: 2505 },
+        carga_8: { danosCosasEUR: 2192, danosPersonasEUR: 3315 },
+        carga_9: { danosCosasEUR: 2312, danosPersonasEUR: 3441 },
+        carga_10: { danosCosasEUR: 2595, danosPersonasEUR: 4378 },
+        carga_11: { danosCosasEUR: 2595, danosPersonasEUR: 4378 },
+        autobus_12: { danosCosasEUR: 1502, danosPersonasEUR: 2817 },
+        autobus_13: { danosCosasEUR: 1502, danosPersonasEUR: 2817 },
+        autobus_14: { danosCosasEUR: 2000, danosPersonasEUR: 3754 },
+        minibus_15: { danosCosasEUR: 1502, danosPersonasEUR: 2817 },
+        minibus_16: { danosCosasEUR: 1502, danosPersonasEUR: 2817 },
+        minibus_17: { danosCosasEUR: 2505, danosPersonasEUR: 3754 },
+        rustico: { danosCosasEUR: 1874, danosPersonasEUR: 2817 },
+        moto: { danosCosasEUR: 2000, danosPersonasEUR: 2505 },
+        motocarro: { danosCosasEUR: 1874, danosPersonasEUR: 2505 },
+        Móviles: { danosCosasEUR: 2000, danosPersonasEUR: 2505 }
+      };
     }
 
     const tipoVehiculo = carData.type_vehiculo;
     const uso = carData.use || '';
     const incluirGrua = carData.use_grua || false;
     const tipoPlaca = carData.type_plate === 'extranjera' ? 'extranjera' : 'nacional';
-    const { clase, grupo } = calcularClaseGrupo(tipoVehiculo, uso);
-
-    console.log('Buscando tarifa con:', { clase, grupo });
-    // Buscar la tarifa correspondiente
-    const [tarifaRows]: any = await pool.query('SELECT * FROM tarifas WHERE clase = ? AND grupo = ?', [clase, grupo]);
-    const tarifa = tarifaRows && tarifaRows[0];
-    if (!tarifa) {
+    const claseGrupo = calcularClaseGrupo(tipoVehiculo, uso);
+    // Solución de tipado para acceso dinámico a objetos
+    const tarifas: Record<string, { primaAnualEUR: number; extranjera?: { primaAnualEUR: number }; servicioGruaUSD: number }> = getTarifas();
+    const coberturas: Record<string, { danosCosasEUR: number; danosPersonasEUR: number }> = getCoberturas();
+    const data = tarifas[claseGrupo];
+    const coberturaData = coberturas[claseGrupo];
+    if (!data || !coberturaData) {
       throw new Error('No se encontraron tarifas para este tipo de vehículo');
     }
-
-    // Calcular primas y coberturas según tipo de placa
-    let primaAnualEUR = tipoPlaca === 'extranjera' ? tarifa.extranjera_prima_anual_eur : tarifa.nacional_prima_anual_eur;
-    let primaAnualUSD = tipoPlaca === 'extranjera' ? tarifa.extranjera_prima_anual_usd : tarifa.nacional_prima_anual_usd;
-    let tasaCambioBs = tipoPlaca === 'extranjera' ? tarifa.extranjera_prima_tasa_cambio_bs : tarifa.nacional_prima_tasa_cambio_bs;
-    let danosCosasEUR = tipoPlaca === 'extranjera' ? tarifa.extranjera_danos_cosas_eur : tarifa.nacional_danos_cosas_eur;
-    let danosPersonasEUR = tipoPlaca === 'extranjera' ? tarifa.extranjera_danos_personas_eur : tarifa.nacional_danos_personas_eur;
-    let danosCosasUSD = tipoPlaca === 'extranjera' ? tarifa.extranjera_danos_cosas_usd : tarifa.nacional_danos_cosas_usd;
-    let danosPersonasUSD = tipoPlaca === 'extranjera' ? tarifa.extranjera_danos_personas_usd : tarifa.nacional_danos_personas_usd;
-
-    // Sumar grúa si aplica
-    let primaUSD = Number(primaAnualUSD) || 0;
-    if (incluirGrua && typeof tarifa.prima_servicio_grua_usd === 'number' && tarifa.prima_servicio_grua_usd > 0) {
-      primaUSD += Number(tarifa.prima_servicio_grua_usd);
+    let primaEUR = data.primaAnualEUR;
+    if (tipoPlaca === "extranjera" && data.extranjera) {
+      primaEUR = data.extranjera.primaAnualEUR;
     }
-
+    // Obtener tasas dinámicas del BCV
+    const rates = await getBcvRates();
+    const euroRate = rates.EUR;
+    const dollarRate = rates.USD;
+    // El factor de conversión correcto de EUR a USD es dollarRate / euroRate
+    const factorConversion = dollarRate / euroRate;
+    const tasaDolarBs = dollarRate;
+    let primaUSD = primaEUR * factorConversion;
+    if (incluirGrua && typeof data.servicioGruaUSD === 'number' && data.servicioGruaUSD > 0) {
+      primaUSD += data.servicioGruaUSD;
+    }
     const totalUSD = parseFloat(primaUSD.toFixed(2));
-    const totalBs = parseFloat((totalUSD * Number(tasaCambioBs || 0)).toFixed(2));
-    const totalEuro = parseFloat((Number(primaAnualEUR || 0)).toFixed(2));
-
+    const totalBs = parseFloat((totalUSD * tasaDolarBs).toFixed(2));
+    const totalEuro = parseFloat((primaUSD / factorConversion).toFixed(2));
+    let danosCosasUSD = parseFloat((coberturaData.danosCosasEUR * factorConversion).toFixed(2));
+    let danosPersonasUSD = parseFloat((coberturaData.danosPersonasEUR * factorConversion).toFixed(2));
     return {
       primaTotal: {
         dolar: totalUSD,
@@ -128,6 +166,8 @@ class QuotationService {
 
     // 2. Calcular la cotización
     const quotationResult = await this.calculateQuotation(carData);
+    // Log para depuración de primaTotal
+    console.log('quotationResult.primaTotal:', quotationResult.primaTotal, 'use_grua:', carData.use_grua);
 
     // 3. Guardar la cotización en la base de datos
     const cotizacionRecord: Omit<CotizacionRecord, 'id' | 'createdAt' | 'updatedAt'> = {
