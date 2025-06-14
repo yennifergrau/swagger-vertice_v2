@@ -97,7 +97,7 @@
                         "issuer_store": "Sucursal Centro"
                       },
                       "carData": {
-                        "type_plate": "A",
+                        "type_plate": "nacional",
                         "plate": "ABC123",
                         "brand": "Toyota",
                         "model": "Corolla",

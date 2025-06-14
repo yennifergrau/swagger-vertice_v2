@@ -8,7 +8,6 @@ import { getBcvRates } from './bcv.service';
 
 class QuotationService {
   private async calculateQuotation(carData: CarData): Promise<QuotationResult> {
-    // Usar la lógica de la referencia para obtener tarifas y coberturas
     function calcularClaseGrupo(tipoVehiculo: string, uso: string) {
       let claseGrupo = "";
       if (tipoVehiculo.toLowerCase() === "particular") {
@@ -103,7 +102,6 @@ class QuotationService {
     const incluirGrua = carData.use_grua || false;
     const tipoPlaca = carData.type_plate === 'extranjera' ? 'extranjera' : 'nacional';
     const claseGrupo = calcularClaseGrupo(tipoVehiculo, uso);
-    // Solución de tipado para acceso dinámico a objetos
     const tarifas: Record<string, { primaAnualEUR: number; extranjera?: { primaAnualEUR: number }; servicioGruaUSD: number }> = getTarifas();
     const coberturas: Record<string, { danosCosasEUR: number; danosPersonasEUR: number }> = getCoberturas();
     const data = tarifas[claseGrupo];
@@ -115,21 +113,27 @@ class QuotationService {
     if (tipoPlaca === "extranjera" && data.extranjera) {
       primaEUR = data.extranjera.primaAnualEUR;
     }
-    // Obtener tasas dinámicas del BCV
+
     const rates = await getBcvRates();
     const euroRate = rates.EUR;
     const dollarRate = rates.USD;
-    // El factor de conversión correcto de EUR a USD es dollarRate / euroRate
-    const factorConversion = euroRate / dollarRate;
+    
+    const dolar = +dollarRate.toFixed(2)
+    const euro = +euroRate.toFixed(2)
+    
+    const factorConversion = euro / dolar;
+    const factorEntero = Math.floor(factorConversion);
+
     const tasaDolarBs = dollarRate;
-    let primaUSD = primaEUR * factorConversion;
+    let primaUSD = primaEUR * factorEntero;
+    
     if (incluirGrua && typeof data.servicioGruaUSD === 'number' && data.servicioGruaUSD > 0) {
       primaUSD += data.servicioGruaUSD;
     }
     const totalUSD = parseFloat(primaUSD.toFixed(2));
     const totalBs = parseFloat((totalUSD * tasaDolarBs).toFixed(2));
-    let danosCosasUSD = parseFloat((coberturaData.danosCosasEUR * factorConversion).toFixed(2));
-    let danosPersonasUSD = parseFloat((coberturaData.danosPersonasEUR * factorConversion).toFixed(2));
+    let danosCosasUSD = parseFloat((coberturaData.danosCosasEUR * factorEntero).toFixed(2));
+    let danosPersonasUSD = parseFloat((coberturaData.danosPersonasEUR * factorEntero).toFixed(2));
     return {
       primaTotal: {
         dolar: totalUSD,
@@ -145,30 +149,21 @@ class QuotationService {
   async processQuotation(quotationRequest: QuotationRequest): Promise<QuotationResult> {
     const { generalData, carData, generalDataTomador } = quotationRequest.data;
 
-    // 1. Guardar o encontrar el vehículo
     let carRecord: Car | null = await carService.findCarByPlate(carData.plate);
     if (!carRecord) {
-      // Si el vehículo no existe, crearlo
       const newCarData: Omit<Car, 'id' | 'createdAt' | 'updatedAt'> = {
         ...carData,
-        use_type: carData.use // Mapear 'use' del request a 'use_type' para la DB
+        use_type: carData.use
       };
       carRecord = await carService.createCar(newCarData);
-    } else {
-      // Opcional: Actualizar datos del vehículo si es necesario
-      // Por simplicidad, aquí no se actualiza, pero podrías añadir lógica de actualización
     }
 
     if (!carRecord || !carRecord.id) {
         throw new Error('No se pudo obtener o crear el registro del vehículo.');
     }
 
-    // 2. Calcular la cotización
     const quotationResult = await this.calculateQuotation(carData);
-    // Log para depuración de primaTotal
-    console.log('quotationResult.primaTotal:', quotationResult.primaTotal, 'use_grua:', carData.use_grua);
 
-    // 3. Guardar la cotización en la base de datos
     const cotizacionRecord: Omit<CotizacionRecord, 'id' | 'createdAt' | 'updatedAt'> = {
       car_id: carRecord.id,
       policy_holder_type_document: generalData.policy_holder_type_document,
@@ -185,7 +180,7 @@ class QuotationService {
       prima_total_bs: quotationResult.primaTotal.bs,
       danos_personas: quotationResult.coberturas.danosPersonas,
       danos_cosas: quotationResult.coberturas.danosCosas,
-      ...(generalDataTomador && { // Incluir datos del tomador solo si existen
+      ...(generalDataTomador && {
         insured_type_document: generalDataTomador.type_document,
         insured_document_number: generalDataTomador.insured_document.toString(),
         insured_phone: generalDataTomador.insured_phone,
@@ -199,7 +194,6 @@ class QuotationService {
       })
     };
 
-    // Validación y log para depuración
     const insertValues = [
       cotizacionRecord.car_id,
       cotizacionRecord.policy_holder_type_document,
@@ -230,7 +224,6 @@ class QuotationService {
     if (insertValues.some(v => v === undefined)) {
       throw new Error('Uno de los valores a insertar es undefined: ' + JSON.stringify(insertValues));
     }
-    console.log('Valores para insertar en orders:', insertValues);
     const [result] = await pool.execute<ResultSetHeader>(
       `INSERT INTO orders (
         car_id, policy_holder_type_document, policy_holder_document_number,
@@ -243,8 +236,6 @@ class QuotationService {
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       insertValues
     );
-
-    // No es necesario retornar el registro completo guardado, solo el resultado de la cotización
     return quotationResult;
   }
 }
