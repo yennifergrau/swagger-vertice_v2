@@ -4,6 +4,7 @@ const path = require('path');
 const { PDFDocument } = require('pdf-lib');
 import { insertPolicy } from '../services/policy.service';
 import pool from '../db';
+import { fillPdfTemplate } from '../utils/fillPdfTemplate'
 
 export const authorizePolicy = async (req: Request, res: Response) => {
   try {
@@ -13,14 +14,14 @@ export const authorizePolicy = async (req: Request, res: Response) => {
         error: 'Datos incompletos o inválidos'
       });
     }
-    // Validar que el orden_id exista en la tabla orders
+
     const [orders]: any = await pool.query('SELECT id FROM orders WHERE id = ?', [orden_id]);
     if (!orders || orders.length === 0) {
       return res.status(400).json({
         error: `El orden_id ${orden_id} no existe en la tabla orders.`
       });
     }
-    // Verificar si ya existe una póliza vigente para este carro
+
     const carId = carData.car_id || 0;
     const hoy = new Date();
     const hoyStr = hoy.toISOString().slice(0, 10); // YYYY-MM-DD
@@ -33,13 +34,29 @@ export const authorizePolicy = async (req: Request, res: Response) => {
         error: 'Ya existe una póliza vigente para este vehículo.'
       });
     }
-    // Fechas
+
     const ahora = new Date();
     const expiracion = new Date();
     expiracion.setFullYear(expiracion.getFullYear() + 1);
-    // Generar número de póliza
+
+      const formatDate = (fecha: Date) => {
+      const dia = String(fecha.getDate()).padStart(2, '0');
+      const mes = String(fecha.getMonth() + 1).padStart(2, '0');
+      const año = fecha.getFullYear();
+      const hora = String(fecha.getHours()).padStart(2, '0');
+      const min = String(fecha.getMinutes()).padStart(2, '0');
+      const sec = String(fecha.getSeconds()).padStart(2, '0');
+      return {
+        fecha: `${dia}/${mes}/${año}`,
+        hora: `${hora}:${min}:${sec}`
+      };
+    };
+
+    const { fecha: fecha_creacion, hora: hora_creacion } = formatDate(ahora);
+    const { fecha: fecha_expiracion, hora: hora_expiracion } = formatDate(expiracion);
+
     const numeroPoliza = 'POL' + Math.floor(Math.random() * 1000000).toString().padStart(6, '0');
-    // Guardar en base de datos (tabla policies)
+
     await insertPolicy({
       order_id: Number(orden_id),
       car_id: carData.car_id || 0,
@@ -49,9 +66,27 @@ export const authorizePolicy = async (req: Request, res: Response) => {
       end_date: `${expiracion.getFullYear()}-${(expiracion.getMonth()+1).toString().padStart(2,'0')}-${expiracion.getDate().toString().padStart(2,'0')}`,
       policy_status: 'APPROVED'
     });
+
+
+    const datosPdf = {
+      ...generalData,
+      ...carData,
+      policy_holder_type_document: generalData.policy_holder_type_document || 'V',
+      numero_poliza: numeroPoliza,
+      orden_id,
+      fecha_creacion,
+      hora_creacion,
+      fecha_expiracion,
+      hora_expiracion
+    };
+
+     const outputPath = path.join(__dirname, '../../public/polizas', `${numeroPoliza}.pdf`);
+    await fillPdfTemplate(datosPdf, outputPath);
+
     return res.status(201).json({
       estado: 'APPROVED',
-      numero_poliza: numeroPoliza
+      numero_poliza: numeroPoliza,
+      url_pdf: `http://localhost:4500/public/polizas/${numeroPoliza}.pdf`
     });
   } catch (error: any) {
     console.error('Error en authorizePolicy:', error);
