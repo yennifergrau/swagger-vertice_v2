@@ -120,7 +120,7 @@ class QuotationService {
     const euroRate = rates.EUR;
     const dollarRate = rates.USD;
     // El factor de conversión correcto de EUR a USD es dollarRate / euroRate
-    const factorConversion = dollarRate / euroRate;
+    const factorConversion = euroRate / dollarRate;
     const tasaDolarBs = dollarRate;
     let primaUSD = primaEUR * factorConversion;
     if (incluirGrua && typeof data.servicioGruaUSD === 'number' && data.servicioGruaUSD > 0) {
@@ -128,7 +128,6 @@ class QuotationService {
     }
     const totalUSD = parseFloat(primaUSD.toFixed(2));
     const totalBs = parseFloat((totalUSD * tasaDolarBs).toFixed(2));
-    const totalEuro = parseFloat((primaUSD / factorConversion).toFixed(2));
     let danosCosasUSD = parseFloat((coberturaData.danosCosasEUR * factorConversion).toFixed(2));
     let danosPersonasUSD = parseFloat((coberturaData.danosPersonasEUR * factorConversion).toFixed(2));
     return {
