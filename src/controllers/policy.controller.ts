@@ -5,54 +5,19 @@ const { PDFDocument } = require('pdf-lib');
 import { insertPolicy } from '../services/policy.service';
 import pool from '../db';
 
-async function fillPdfTemplate(data: any, outputPath: string) {
-  const templatePath = path.join(__dirname, '..', 'generatePDF', 'plantilla_rcv.pdf');
-  const pdfBytes = fs.readFileSync(templatePath);
-  const pdfDoc = await PDFDocument.load(pdfBytes);
-  const form = pdfDoc.getForm();
-  const fields = form.getFields();
-  fields.forEach((field: any) => {
-    console.log('Field name:', field.getName());
-  });
-  const toUpper = (value: any) => String(value).toUpperCase();
-  form.getTextField('policy_holder').setText(toUpper(data.policy_holder));
-  form.getTextField('full_document').setText(toUpper(data.policy_holder_type_document + ' ' + data.policy_holder_document_number));
-  form.getTextField('policy_holder_address').setText(toUpper(data.policy_holder_address));
-  form.getTextField('policy_holder_state').setText(toUpper(data.policy_holder_state));
-  form.getTextField('policy_holder_city').setText(toUpper(data.policy_holder_city));
-  form.getTextField('policy_holder_municipality').setText(toUpper(data.policy_holder_municipality));
-  form.getTextField('issuer_store').setText(toUpper(data.issuer_store));
-  form.getTextField('orden_id').setText(toUpper(data.orden_id));
-  form.getTextField('numero_poliza').setText(toUpper(data.numero_poliza));
-  form.getTextField('fecha_creacion').setText(toUpper(data.fecha_creacion));
-  form.getTextField('hora_creacion').setText(toUpper(data.hora_creacion));
-  form.getTextField('fecha_expiracion').setText(toUpper(data.fecha_expiracion));
-  form.getTextField('hora_expiracion').setText(toUpper(data.hora_expiracion));
-  form.getTextField('plate').setText(toUpper(data.plate));
-  form.getTextField('brand').setText(toUpper(data.brand));
-  form.getTextField('model').setText(toUpper(data.model));
-  form.getTextField('version').setText(toUpper(data.version));
-  form.getTextField('year').setText(toUpper(data.year.toString()));
-  form.getTextField('color').setText(toUpper(data.color));
-  form.getTextField('gearbox').setText(toUpper(data.gearbox));
-  form.getTextField('carroceria_serial_number').setText(toUpper(data.carroceria_serial_number));
-  form.getTextField('motor_serial_number').setText(toUpper(data.motor_serial_number));
-  form.getTextField('type_vehiculo').setText(toUpper(data.type_vehiculo));
-  form.getTextField('use').setText(toUpper(data.use));
-  form.getTextField('passenger_qty').setText(toUpper(data.passenger_qty.toString()));
-  form.getTextField('driver').setText(toUpper(data.driver));
-  // form.getTextField('use_grua').setText(data.use_grua ? 'SÍ' : 'NO');
-  form.flatten();
-  const finalPdf = await pdfDoc.save();
-  fs.writeFileSync(outputPath, finalPdf);
-}
-
 export const authorizePolicy = async (req: Request, res: Response) => {
   try {
     const { orden_id, carData, generalData, generalDataTomador, isTomador } = req.body;
     if (!orden_id || !carData || !generalData) {
       return res.status(400).json({
         error: 'Datos incompletos o inválidos'
+      });
+    }
+    // Validar que el orden_id exista en la tabla orders
+    const [orders]: any = await pool.query('SELECT id FROM orders WHERE id = ?', [orden_id]);
+    if (!orders || orders.length === 0) {
+      return res.status(400).json({
+        error: `El orden_id ${orden_id} no existe en la tabla orders.`
       });
     }
     // Verificar si ya existe una póliza vigente para este carro

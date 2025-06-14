@@ -796,6 +796,63 @@
           "500": { "description": "Error interno del servidor" }
         }
       }
+    },
+    "/report": {
+      "post": {
+        "tags": ["Póliza"],
+        "summary": "Generar reporte PDF de póliza",
+        "description": "Genera un PDF de la póliza a partir de la plantilla y devuelve la URL del archivo generado. El body debe contener order_id (preferido) o numero_poliza. Requiere autenticación JWT.",
+        "security": [ { "bearerAuth": [] } ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "order_id": { "type": "integer", "example": 123 },
+                  "numero_poliza": { "type": "string", "example": "POL123456" }
+                },
+                "oneOf": [
+                  { "required": ["order_id"] },
+                  { "required": ["numero_poliza"] }
+                ]
+              },
+              "examples": {
+                "Por order_id": {
+                  "summary": "Generar por order_id",
+                  "value": { "order_id": 123 }
+                },
+                "Por numero_poliza": {
+                  "summary": "Generar por numero_poliza",
+                  "value": { "numero_poliza": "POL123456" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Reporte PDF generado correctamente",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": { "type": "string", "example": "APPROVED" },
+                    "url_pdf": { "type": "string", "example": "/poliza/poliza_POL123456.pdf" }
+                  }
+                },
+                "example": {
+                  "status": "APPROVED",
+                  "url_pdf": "/poliza/poliza_POL123456.pdf"
+                }
+              }
+            }
+          },
+          "500": { "description": "Error al generar el PDF" }
+        }
+      }
     }
   },
   "components": {

@@ -16,6 +16,7 @@ import getNotificationsRouter from './routes/getNotifications';
 import policyRouter from './routes/policy';
 import confirmPolicyRouter from './routes/confirm';
 import publicSypagoRouter from './routes/publicSypago'; // Importar el router publicSypago
+import reportRouter from './routes/report'; // Importar el router de reportes
 
 
 dotenv.config();
@@ -45,6 +46,7 @@ app.use('/getNotifications', getNotificationsRouter);
 app.use('/authorize', policyRouter);
 app.use('/confirm', confirmPolicyRouter);
 app.use('/', publicSypagoRouter); // Montar el router publicSypago en la raíz
+app.use('/report', reportRouter); // Nuevo endpoint para reporte
 
 app.post('/authorize', (req, res) => {
   // Lógica para manejar la autorización
