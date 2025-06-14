@@ -138,7 +138,7 @@ export const verifyCodeAndPay = async (req: Request, res: Response) => {
     }
     const datos = req.body;
     const response = await axios.post(
-      'https://pruebas.sypago.net:8086/api/v1/transaction',
+      'https://pruebas.sypago.net:8086/api/v1/transaction/otp',
       datos,
       {
         headers: {
@@ -149,24 +149,27 @@ export const verifyCodeAndPay = async (req: Request, res: Response) => {
     );
     // Guardar el pago en la tabla payments
     // Se asume que policy_id, payment_amount, payment_method están en el body o se pueden obtener
-    const { policy_id, amount, payment_method } = datos;
-    const payment_amount = amount?.amt || 0;
-    const payment_date = new Date().toISOString().slice(0, 19).replace('T', ' ');
-    const transaction_id = response.data.transaction_id;
-    if (policy_id && payment_amount && payment_method && transaction_id) {
-      await savePayment({
-        policy_id,
-        payment_amount,
-        payment_date,
-        payment_method,
-        transaction_id
-      });
-    }
-    return res.status(200).json({ transaction_id });
+    // const { policy_id, amount, payment_method } = datos;
+    // const payment_amount = amount?.amt || 0;
+    // const payment_date = new Date().toISOString().slice(0, 19).replace('T', ' ');
+    // const transaction_id = response.data.transaction_id;
+    // if (policy_id && payment_amount && payment_method && transaction_id) {
+    //   await savePayment({
+    //     policy_id,
+    //     payment_amount,
+    //     payment_date,
+    //     payment_method,
+    //     transaction_id
+    //   });
+    // }
+
+    console.log(response);
+    
+    return res.status(200).json(response.data);
   } catch (err: any) {
     console.error('Error al validar OTP y ejecutar pago:', err.message);
     if (err.response) {
-      console.error('Detalles del error:', err.response.data);
+      console.error('Detalles del error:', err);
     }
     return res.status(err.response ? err.response.status : 500).json({
       error: 'Error al validar OTP y ejecutar pago',
@@ -196,9 +199,9 @@ export const notificationSypago = async (req: Request, res: Response) => {
       }
     );
     const status = response.data.status || 'PENDING';
-    // Actualizar el status en la base de datos si existe
-    await pool.query('UPDATE payments SET status = ? WHERE transaction_id = ?', [status, id_transaction]);
-    return res.status(200).json({ status });
+    // // Actualizar el status en la base de datos si existe
+    // await pool.query('UPDATE payments SET status = ? WHERE transaction_id = ?', [status, id_transaction]);
+    return res.status(200).json( response.data );
   } catch (err: any) {
     console.error('Error en la notificación:', err);
     return res.status(500).json({
