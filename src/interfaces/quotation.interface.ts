@@ -86,6 +86,7 @@ export interface CotizacionRecord {
   insured_city?: string;
   insured_municipality?: string;
   insured_isseur_store?: string;
+  prima_total_euro: number;
   prima_total_dolar: number;
   prima_total_bs: number;
   danos_personas: number;

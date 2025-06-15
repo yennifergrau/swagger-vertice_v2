@@ -117,16 +117,16 @@ class QuotationService {
     const rates = await getBcvRates();
     const euroRate = rates.EUR;
     const dollarRate = rates.USD;
-    
-    const dolar = +dollarRate.toFixed(2)
+
     const euro = +euroRate.toFixed(2)
-    
+    const dolar = +dollarRate.toFixed(2)
+
     const factorConversion = euro / dolar;
     const factorEntero = (factorConversion);
 
     const tasaDolarBs = dollarRate;
     let primaUSD = primaEUR * factorEntero;
-    
+
     if (incluirGrua && typeof data.servicioGruaUSD === 'number' && data.servicioGruaUSD > 0) {
       primaUSD += data.servicioGruaUSD;
     }
@@ -163,7 +163,7 @@ class QuotationService {
     }
 
     const quotationResult = await this.calculateQuotation(carData);
-
+    // Guardar euro en prima_total_euro
     const cotizacionRecord: Omit<CotizacionRecord, 'id' | 'createdAt' | 'updatedAt'> = {
       car_id: carRecord.id,
       policy_holder_type_document: generalData.policy_holder_type_document,
@@ -176,6 +176,7 @@ class QuotationService {
       policy_holder_city: generalData.policy_holder_city,
       policy_holder_municipality: generalData.policy_holder_municipality,
       isseur_store: generalData.isseur_store,
+      prima_total_euro: euro, // guardar la tasa euro
       prima_total_dolar: quotationResult.primaTotal.dolar,
       prima_total_bs: quotationResult.primaTotal.bs,
       danos_personas: quotationResult.coberturas.danosPersonas,
@@ -206,6 +207,7 @@ class QuotationService {
       cotizacionRecord.policy_holder_city ?? null,
       cotizacionRecord.policy_holder_municipality ?? null,
       cotizacionRecord.isseur_store ?? null,
+      cotizacionRecord.prima_total_euro,
       cotizacionRecord.prima_total_dolar,
       cotizacionRecord.prima_total_bs,
       cotizacionRecord.danos_personas,
@@ -229,11 +231,11 @@ class QuotationService {
         car_id, policy_holder_type_document, policy_holder_document_number,
         policy_holder_phone, policy_holder_email, policy_holder, policy_holder_address,
         policy_holder_state, policy_holder_city, policy_holder_municipality, isseur_store,
-        prima_total_dolar, prima_total_bs, danos_personas, danos_cosas,
+        prima_total_euro, prima_total_dolar, prima_total_bs, danos_personas, danos_cosas,
         insured_type_document, insured_document_number, insured_phone, insured_email,
         insured, insured_address, insured_state, insured_city, insured_municipality,
         insured_isseur_store
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       insertValues
     );
     return quotationResult;
