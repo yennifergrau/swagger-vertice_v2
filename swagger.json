@@ -80,8 +80,8 @@
                 "required": ["data"]
               },
               "examples": {
-                "Sin tomador": {
-                  "summary": "Cotización sin tomador (solo titular)",
+                "Cotización tomador mismo titular": {
+                  "summary": "Cotización tomador igual al titular",
                   "value": {
                     "data": {
                       "generalData": {
@@ -94,7 +94,7 @@
                         "policy_holder_state": "Miranda",
                         "policy_holder_city": "Caracas",
                         "policy_holder_municipality": "Libertador",
-                        "issuer_store": "Sucursal Centro"
+                        "isseur_store": "Sucursal Centro"
                       },
                       "carData": {
                         "type_plate": "nacional",
@@ -112,12 +112,24 @@
                         "passenger_qty": 5,
                         "driver": "Juan Pérez",
                         "use_grua": true
+                      },
+                      "generalDataTomador": {
+                        "type_document": "V",
+                        "insured_document": 12345678,
+                        "insured_phone": "04141234567",
+                        "insured_email": "titular@email.com",
+                        "insured": "Juan Pérez",
+                        "insured_address": "Calle 1",
+                        "insured_state": "Miranda",
+                        "insured_city": "Caracas",
+                        "insured_municipality": "Libertador",
+                        "isseur_store": "Sucursal Centro"
                       }
                     }
                   }
                 },
-                "Con tomador": {
-                  "summary": "Cotización con tomador distinto al titular",
+                "Cotización tomador distinto al titular": {
+                  "summary": "Cotización tomador distinto al titular",
                   "value": {
                     "data": {
                       "generalData": {
@@ -130,10 +142,10 @@
                         "policy_holder_state": "Miranda",
                         "policy_holder_city": "Caracas",
                         "policy_holder_municipality": "Libertador",
-                        "issuer_store": "Sucursal Centro"
+                        "isseur_store": "Sucursal Centro"
                       },
                       "carData": {
-                        "type_plate": "A",
+                        "type_plate": "nacional",
                         "plate": "DEF456",
                         "brand": "Chevrolet",
                         "model": "Aveo",
@@ -159,7 +171,7 @@
                         "insured_state": "Miranda",
                         "insured_city": "Guarenas",
                         "insured_municipality": "Plaza",
-                        "issuer_store": "Sucursal Este"
+                        "isseur_store": "Sucursal Este"
                       }
                     }
                   }
@@ -643,10 +655,10 @@
                       "policy_holder_state": "Miranda",
                       "policy_holder_city": "Caracas",
                       "policy_holder_municipality": "Libertador",
-                      "issuer_store": "Sucursal Centro"
+                      "isseur_store": "Sucursal Centro"
                     },
                     "carData": {
-                      "type_plate": "A",
+                      "type_plate": "nacional",
                       "plate": "ABC123",
                       "brand": "Toyota",
                       "model": "Corolla",
@@ -665,7 +677,7 @@
                   }
                 },
                 "Con tomador": {
-                  "summary": "Emisión con tomador distinto al titular",
+                  "summary": "Emisión tomador distinto al titular",
                   "value": {
                     "isTomador": true,
                     "orden_id": "0001002",
@@ -679,10 +691,10 @@
                       "policy_holder_state": "Miranda",
                       "policy_holder_city": "Caracas",
                       "policy_holder_municipality": "Libertador",
-                      "issuer_store": "Sucursal Centro"
+                      "isseur_store": "Sucursal Centro"
                     },
                     "carData": {
-                      "type_plate": "A",
+                      "type_plate": "nacional",
                       "plate": "DEF456",
                       "brand": "Chevrolet",
                       "model": "Aveo",
@@ -708,7 +720,7 @@
                       "insured_state": "Miranda",
                       "insured_city": "Guarenas",
                       "insured_municipality": "Plaza",
-                      "issuer_store": "Sucursal Este"
+                      "isseur_store": "Sucursal Este"
                     }
                   }
                 }
@@ -825,7 +837,7 @@
           "policy_holder_state": { "type": "string" },
           "policy_holder_city": { "type": "string" },
           "policy_holder_municipality": { "type": "string" },
-          "issuer_store": { "type": "string" }
+          "isseur_store": { "type": "string" }
         },
         "required": ["policy_holder_type_document", "policy_holder_document_number", "policy_holder", "policy_holder_address", "policy_holder_state", "policy_holder_city"]
       },
@@ -862,7 +874,7 @@
           "insured_state": { "type": "string" },
           "insured_city": { "type": "string" },
           "insured_municipality": { "type": "string" },
-          "issuer_store": { "type": "string" }
+          "isseur_store": { "type": "string" }
         }
       },
       "QuotationResult": {

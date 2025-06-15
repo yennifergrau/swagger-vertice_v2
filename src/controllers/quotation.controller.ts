@@ -8,11 +8,15 @@ class QuotationController {
     try {
       const quotationRequest: QuotationRequest = req.body;
 
-      // Validación básica del Request Body (considera usar un validador como Joi o Zod)
       if (!quotationRequest.data || !quotationRequest.data.generalData || !quotationRequest.data.carData) {
         return res.status(400).json({ message: 'Request Body incompleto. Faltan generalData o carData.' });
       }
-      // Podrías añadir más validaciones específicas aquí
+
+      // Inyectar el user_id del usuario autenticado
+      // Ahora ambos (req.user.id y quotationRequest.data.generalData.user_id) son string
+      // if (req.user && req.user.id) {
+      //   quotationRequest.data.generalData.user_id = req.user.id; // ¡Esto ahora debería funcionar sin errores!
+      // }
 
       const result = await quotationService.processQuotation(quotationRequest);
       res.status(200).json(result);

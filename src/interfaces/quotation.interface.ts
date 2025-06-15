@@ -9,6 +9,7 @@ export interface GeneralData {
   policy_holder_city: string;
   policy_holder_municipality: string;
   isseur_store: string;
+  user_id: string; // <-- Agregado para guardar el ID del usuario autenticado
 }
 
 export interface CarData {
@@ -46,7 +47,7 @@ export interface QuotationRequest {
   data: {
     generalData: GeneralData;
     carData: CarData;
-    generalDataTomador?: GeneralDataTomador; // Opcional si el tomador es el mismo titular
+    generalDataTomador: GeneralDataTomador; // Siempre requerido
   };
 }
 

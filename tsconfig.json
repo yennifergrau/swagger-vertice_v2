@@ -16,7 +16,8 @@
     "resolveJsonModule": true
   },
   "include": [
-    "src/**/*" // Esto debería incluir src/types
+    "src/**/*", // Esto debería incluir src/types
+    "src/**/*.d.ts" // O específicamente esto para asegurarte de que los .d.ts sean incluidos
   ],
   "exclude": ["node_modules", "dist"]
 }

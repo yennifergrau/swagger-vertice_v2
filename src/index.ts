@@ -25,7 +25,7 @@ dotenv.config();
 const app = express();
 
 const corsOptions = {
-  origin: ['*','http://localhost:4500', 'http://localhost:4500/api-docs', 'https://services-ui-vertice-qa.polizaqui.com','http://localhost:4500/users/report'],
+  origin: ['*','http://localhost:4500', 'http://localhost:4500/api-docs', 'https://services-ui-vertice-qa.polizaqui.com','http://localhost:4500/holders/report'],
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true

@@ -1,16 +1,20 @@
+// src/types/express/index.d.ts
 import { Request } from 'express';
 
-// Envuelve todo en 'declare global' para asegurar que la extensión sea globalmente reconocida.
+// Define la estructura de tu objeto de usuario.
+// ¡Asegúrate de que 'id' coincida con el tipo de tu ID de usuario (string o number)!
+interface User {
+  id: string; // O 'number' si tu user ID es numérico
+  // Agrega otras propiedades si tu objeto de usuario las tiene, por ejemplo:
+  // email: string;
+  // name: string;
+  // roles: string[];
+}
+
 declare global {
   namespace Express {
-    // Asegúrate de que el nombre de la interfaz sea 'Request' y no 'CustomRequest' u otro.
     interface Request {
-      // Define la propiedad 'user' como opcional (por el '?') y con el tipo de payload que esperas.
-      user?: {
-        id: number;
-        username: string;
-        role?: string;
-      };
+      user?: User; // La propiedad 'user' puede ser opcional (si el usuario no está autenticado)
     }
   }
 }
