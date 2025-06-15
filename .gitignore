@@ -72,4 +72,4 @@ secrets/
 *.p12
 *.pfx
 
-public/poliza/*.pdf
+public/polizas/*.pdf

@@ -15,14 +15,14 @@ export const authorizePolicy = async (req: Request, res: Response) => {
       });
     }
 
-    const [orders]: any = await pool.query('SELECT id FROM orders WHERE id = ?', [orden_id]);
+    const [orders]: any = await pool.query('SELECT * FROM orders WHERE id = ?', [orden_id]);
     if (!orders || orders.length === 0) {
       return res.status(400).json({
         error: `El orden_id ${orden_id} no existe en la tabla orders.`
       });
     }
-
-    const carId = carData.car_id || 0;
+    const order = orders[0];
+    const carId = order.car_id;
     const hoy = new Date();
     const hoyStr = hoy.toISOString().slice(0, 10); // YYYY-MM-DD
     const [vigente]: any = await pool.query(
@@ -59,7 +59,7 @@ export const authorizePolicy = async (req: Request, res: Response) => {
 
     await insertPolicy({
       order_id: Number(orden_id),
-      car_id: carData.car_id || 0,
+      car_id: carId,
       policy_number: numeroPoliza,
       issue_date: `${ahora.getFullYear()}-${(ahora.getMonth()+1).toString().padStart(2,'0')}-${ahora.getDate().toString().padStart(2,'0')}`,
       start_date: `${ahora.getFullYear()}-${(ahora.getMonth()+1).toString().padStart(2,'0')}-${ahora.getDate().toString().padStart(2,'0')}`,
@@ -74,6 +74,7 @@ export const authorizePolicy = async (req: Request, res: Response) => {
       policy_holder_type_document: generalData.policy_holder_type_document || 'V',
       numero_poliza: numeroPoliza,
       orden_id,
+      car_id: carId,
       fecha_creacion,
       hora_creacion,
       fecha_expiracion,

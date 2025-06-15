@@ -107,24 +107,36 @@ export const verifyCodeAndPay = async (req: Request, res: Response) => {
         }
       }
     );
-    // Guardar el pago en la tabla payments
-    // Se asume que policy_id, payment_amount, payment_method están en el body o se pueden obtener
-    // const { policy_id, amount, payment_method } = datos;
-    // const payment_amount = amount?.amt || 0;
-    // const payment_date = new Date().toISOString().slice(0, 19).replace('T', ' ');
-    // const transaction_id = response.data.transaction_id;
-    // if (policy_id && payment_amount && payment_method && transaction_id) {
-    //   await savePayment({
-    //     policy_id,
-    //     payment_amount,
-    //     payment_date,
-    //     payment_method,
-    //     transaction_id
-    //   });
-    // }
-
-    console.log(response);
-    
+    // Buscar policy_id solo usando order_id
+    let policy_id: number | null = null;
+    if (datos.order_id) {
+      try {
+        const [policies]: any = await pool.query('SELECT policy_id FROM policies WHERE order_id = ?', [datos.order_id]);
+        console.log('Resultado de búsqueda de policies:', policies);
+        if (policies && policies.length > 0) {
+          policy_id = policies[0].policy_id;
+        }
+      } catch (e) {
+        console.warn('No se pudo buscar policy_id por order_id:', e);
+      }
+    } else {
+      console.warn('No se recibió order_id en el body');
+    }
+    const payment_amount = datos.amount?.amt || 0;
+    const payment_date = new Date().toISOString().slice(0, 19).replace('T', ' ');
+    const transaction_id = response.data.transaction_id;
+    const payment_method = datos.account?.type || 'SyPago';
+    if (policy_id && payment_amount && payment_method && transaction_id) {
+      await savePayment({
+        policy_id,
+        payment_amount,
+        payment_date,
+        payment_method,
+        transaction_id
+      });
+    } else {
+      console.warn('No se guardó el pago: faltan datos requeridos', { policy_id, payment_amount, payment_method, transaction_id });
+    }
     return res.status(200).json(response.data);
   } catch (err: any) {
     console.error('Error al validar OTP y ejecutar pago:', err.message);

@@ -18,7 +18,6 @@ import getNotificationsRouter from './routes/getNotifications';
 import policyRouter from './routes/policy';
 import confirmPolicyRouter from './routes/confirm';
 import publicSypagoRouter from './routes/publicSypago'; // Importar el router publicSypago
-import reportRouter from './routes/report'; // Importar el router de reportes
 
 
 dotenv.config();
@@ -55,7 +54,6 @@ app.use('/getNotifications', getNotificationsRouter);
 // Poliza
 app.use('/authorize', policyRouter);
 app.use('/confirm', confirmPolicyRouter);
-app.use('/report', reportRouter);
 
 // Script para crear un usuario de prueba automáticamente si no existe
 (async () => {
