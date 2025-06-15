@@ -96,7 +96,7 @@ class QuotationService {
       };
     }
 
-    const tipoVehiculo = carData.type_vehiculo;
+   const tipoVehiculo = carData.type_vehiculo;
     const uso = carData.use || '';
     const incluirGrua = carData.use_grua || false;
     const tipoPlaca = carData.type_plate === 'extranjera' ? 'extranjera' : 'nacional';
@@ -109,31 +109,29 @@ class QuotationService {
       throw new Error('No se encontraron tarifas para este tipo de vehículo');
     }
 
-    let primaEURCalculada = data.primaAnualEUR;
-    if (tipoPlaca === "extranjera" && data.extranjera) {
-      primaEURCalculada = data.extranjera.primaAnualEUR;
-    }
-
+// Obtener tasas de cambio
     const rates = await getBcvRates();
     const euroRate = rates.EUR;
     const dollarRate = rates.USD;
 
-    const euro = +euroRate.toFixed(2)
-    const dolar = +dollarRate.toFixed(2)
+    const factorConversion = euroRate / dollarRate;
 
-    const factorConversion = euro / dolar;
-    const factorEntero = (factorConversion);
+    let primaEUR = data.primaAnualEUR;
+    if (tipoPlaca === "extranjera" && data.extranjera) {
+      primaEUR = data.extranjera.primaAnualEUR;
+    }
 
-    const tasaDolarBs = dollarRate;
-    let primaUSD = primaEURCalculada * factorEntero;
+      let primaUSD = primaEUR * factorConversion;
 
-    if (incluirGrua && typeof data.servicioGruaUSD === 'number' && data.servicioGruaUSD > 0) {
+      if (incluirGrua && typeof data.servicioGruaUSD === 'number' && data.servicioGruaUSD > 0) {
       primaUSD += data.servicioGruaUSD;
     }
+
     const totalUSD = parseFloat(primaUSD.toFixed(2));
-    const totalBs = parseFloat((totalUSD * tasaDolarBs).toFixed(2));
-    let danosCosasUSD = parseFloat((coberturaData.danosCosasEUR * factorEntero).toFixed(2));
-    let danosPersonasUSD = parseFloat((coberturaData.danosPersonasEUR * factorEntero).toFixed(2));
+    const totalBs = parseFloat((totalUSD * dollarRate).toFixed(2));
+    
+   const danosCosasUSD = parseFloat((coberturaData.danosCosasEUR * factorConversion).toFixed(2));
+    const danosPersonasUSD = parseFloat((coberturaData.danosPersonasEUR * factorConversion).toFixed(2));
 
     return {
       primaTotal: {
