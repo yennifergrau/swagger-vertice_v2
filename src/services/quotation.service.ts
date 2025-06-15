@@ -122,7 +122,7 @@ class QuotationService {
     const euro = +euroRate.toFixed(2)
     
     const factorConversion = euro / dolar;
-    const factorEntero = Math.floor(factorConversion);
+    const factorEntero = (factorConversion);
 
     const tasaDolarBs = dollarRate;
     let primaUSD = primaEUR * factorEntero;
