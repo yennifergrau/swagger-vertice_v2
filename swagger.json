@@ -524,7 +524,7 @@
         },
         "responses": {
           "200": {
-            "description": "Transacción ejecutada correctamente",
+            "description": "Transacción ejecutada correctamente.\n\n<b>Nota importante:</b> Para que el pago sea guardado en la base de datos, es obligatorio enviar el campo <code>order_id</code> en el body de la petición, con el valor correspondiente al <b>order_id</b> de la póliza existente en el sistema.\n\n<pre>\nEjemplo de body válido para guardar el pago:\n{\n  ...otros_campos,\n  \"order_id\": 1\n}\n</pre>",
             "content": {
               "application/json": {
                 "schema": {
