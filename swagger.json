@@ -244,7 +244,7 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "message": { "type": "string", "example": "La placa ya existe" }
+                    "message": { "type": "string", "example": "La placa no existe" }
                   }
                 },
                 "examples": {
@@ -536,7 +536,7 @@
         },
         "responses": {
           "200": {
-            "description": "Transacción ejecutada correctamente.\n\n<b>Nota importante:</b> Para que el pago sea guardado en la base de datos, es obligatorio enviar el campo <code>order_id</code> en el body de la petición, con el valor correspondiente al <b>order_id</b> de la póliza existente en el sistema.\n\n<pre>\nEjemplo de body válido para guardar el pago:\n{\n  ...otros_campos,\n  \"order_id\": 1\n}\n</pre>",
+            "description": "Transacción ejecutada correctamente.\n\n<b>Nota importante:</b> Para que el pago sea guardado en la base de datos, es obligatorio enviar el campo <code>order_id</code> en el body de la petición, con el valor correspondiente al <b>order_id</b> de la cotización existente en el sistema.\n\n<pre>\nEjemplo de body válido para guardar el pago:\n{\n  ...otros_campos,\n  \"order_id\": 1\n}\n</pre>",
             "content": {
               "application/json": {
                 "schema": {
@@ -623,7 +623,7 @@
         "tags": ["Póliza"],
         "security": [{ "bearerAuth": [] }],
         "summary": "Emitir Póliza",
-        "description": "Autoriza la emisión de la póliza utilizando los datos temporales de la cotización.",
+        "description": "Autoriza la emisión de la póliza utilizando los datos temporales de la cotización y el estado del pago de SyPago.",
         "requestBody": {
           "required": true,
           "content": {
@@ -635,9 +635,10 @@
                   "orden_id": { "type": "string", "example": "0001002" },
                   "carData": { "type": "object" },
                   "generalData": { "type": "object" },
-                  "generalDataTomador": { "type": "object" }
+                  "generalDataTomador": { "type": "object" },
+                  "transaction_id": { "type": "string", "example": "TXN987654" }
                 },
-                "required": ["isTomador", "orden_id", "carData", "generalData"]
+                "required": ["isTomador", "orden_id", "carData", "generalData", "transaction_id"]
               },
               "examples": {
                 "Solo titular": {
@@ -673,7 +674,8 @@
                       "passenger_qty": 5,
                       "driver": "Juan Pérez",
                       "use_grua": true
-                    }
+                    },
+                    "transaction_id": "TXN987654"
                   }
                 },
                 "Con tomador": {
@@ -721,7 +723,8 @@
                       "insured_city": "Guarenas",
                       "insured_municipality": "Plaza",
                       "isseur_store": "Sucursal Este"
-                    }
+                    },
+                    "transaction_id": "TXN987654"
                   }
                 }
               }
@@ -753,6 +756,20 @@
             }
           },
           "400": { "description": "Datos incompletos o inválidos" },
+          "402": {
+            "description": "El pago no ha sido aprobado o la verificación falló.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": { "type": "string", "example": "El pago para la transacción TXN987654 no ha sido aprobado. Estado actual: RJCT. No se puede emitir la póliza." },
+                    "status": { "type": "string", "example": "PAYMENT_REJECTED_OR_PENDING" }
+                  }
+                }
+              }
+            }
+          },
           "409": { "description": "Conflicto al guardar la póliza" },
           "500": { "description": "Error interno del servidor" }
         }

@@ -1,7 +1,7 @@
 import pool from '../config/db';
+import { Policy } from '../interfaces/policy.interface';
 
 export async function getOrderAndCarData(orderId: number) {
-  // Busca la orden y el auto asociado
   const [orders]: any = await pool.query('SELECT * FROM orders WHERE id = ?', [orderId]);
   if (!Array.isArray(orders) || orders.length === 0) {
     throw new Error('Orden no encontrada');
@@ -15,18 +15,22 @@ export async function getOrderAndCarData(orderId: number) {
   return { order, car };
 }
 
-export async function insertPolicy({ order_id, car_id, policy_number, issue_date, start_date, end_date, policy_status }: {
-  order_id: number,
-  car_id: number,
-  policy_number: string,
-  issue_date?: string,
-  start_date?: string,
-  end_date?: string,
-  policy_status?: string
-}) {
-  // Asegura que las fechas estén en formato YYYY-MM-DD
+export async function insertPolicy(policyData: Policy) {
+  const {
+    order_id,
+    car_id,
+    policy_number,
+    issue_date,
+    start_date,
+    end_date,
+    policy_status,
+    transaction_id, // Nuevo campo
+    payment_status, // Nuevo campo
+    pdf_url // Nuevo campo
+  } = policyData;
+
   const today = new Date();
-  const defaultDate = today.toISOString().slice(0, 10); // 'YYYY-MM-DD'
+  const defaultDate = today.toISOString().slice(0, 10);
   const _issue_date = issue_date ? issue_date.slice(0, 10) : defaultDate;
   const _start_date = start_date ? start_date.slice(0, 10) : defaultDate;
   const nextYear = new Date(today);
@@ -34,16 +38,36 @@ export async function insertPolicy({ order_id, car_id, policy_number, issue_date
   const _end_date = end_date ? end_date.slice(0, 10) : nextYear.toISOString().slice(0, 10);
 
   const [result]: any = await pool.query(
-    `INSERT INTO policies (order_id, car_id, policy_number, issue_date, start_date, end_date, policy_status)
-     VALUES (?, ?, ?, ?, ?, ?, ?)`,
-    [order_id, car_id, policy_number, _issue_date, _start_date, _end_date, policy_status || 'APPROVED']
+    `INSERT INTO policies (
+      order_id,
+      car_id,
+      policy_number,
+      issue_date,
+      start_date,
+      end_date,
+      policy_status,
+      transaction_id,  -- Nuevo
+      payment_status,  -- Nuevo
+      pdf_url          -- Nuevo
+    )
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [
+      order_id,
+      car_id,
+      policy_number,
+      _issue_date,
+      _start_date,
+      _end_date,
+      policy_status || 'APPROVED',
+      transaction_id || null,
+      payment_status || null,
+      pdf_url || null
+    ]
   );
   return result.insertId;
 }
 
-// Servicio para confirmar póliza y actualizar estado
 export async function confirmPolicyStatus(reference: string, status: string) {
-  // Validaciones
   if (!reference || typeof reference !== 'string' || reference.length > 100) {
     throw new Error('reference es requerido y debe ser un string válido.');
   }
@@ -54,7 +78,6 @@ export async function confirmPolicyStatus(reference: string, status: string) {
   if (!validStatuses.includes(status)) {
     throw new Error(`status debe ser uno de: ${validStatuses.join(', ')}`);
   }
-  // Actualizar en la base de datos
   const [result]: any = await pool.query(
     'UPDATE policies SET policy_status = ? WHERE policy_number = ?',
     [status, reference]
