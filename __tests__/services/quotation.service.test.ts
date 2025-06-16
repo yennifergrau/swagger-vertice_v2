@@ -201,4 +201,98 @@ describe('QuotationService', () => {
     expect(carService.findOrCreateCar).toHaveBeenCalledTimes(1);
     expect(pool.execute).toHaveBeenCalledTimes(1);
   });
+
+  // --- Caso de Prueba 3: Placa Extranjera (segundo caso extranjero) ---
+  test('debería calcular la cotización correctamente para un vehículo extranjero particular (segundo caso extranjero)', async () => {
+    // ... (requestBody es correcto y tiene use_grua: true) ...
+    const requestBody = {
+      data: {
+        generalData: {
+          policy_holder_type_document: "V",
+          policy_holder_document_number: 12345678,
+          policy_holder_phone: "04141234567",
+          policy_holder_email: "titular@email.com",
+          policy_holder: "Juan Pérez",
+          policy_holder_address: "Calle 1",
+          policy_holder_state: "Miranda",
+          policy_holder_city: "Caracas",
+          policy_holder_municipality: "Libertador",
+          isseur_store: "Sucursal Centro"
+        },
+        carData: {
+          type_plate: "extranjera",
+          plate: "ABC123",
+          brand: "Toyota",
+          model: "Corolla",
+          version: "LE",
+          year: 2022,
+          color: "Blanco",
+          gearbox: "Automático",
+          carroceria_serial_number: "1234567890",
+          motor_serial_number: "0987654321",
+          type_vehiculo: "particular",
+          use: "Hasta 800 kg. de peso",
+          passenger_qty: 5,
+          driver: "Juan Pérez",
+          use_grua: true // ¡Este es el factor clave!
+        },
+        generalDataTomador: {
+          type_document: "V",
+          insured_document: 12345678,
+          insured_phone: "04141234567",
+          insured_email: "titular@email.com",
+          insured: "Juan Pérez",
+          insured_address: "Calle 1",
+          insured_state: "Miranda",
+          insured_city: "Caracas",
+          insured_municipality: "Libertador",
+          isseur_store: "Sucursal Centro"
+        }
+      }
+    };
+
+    const tarifaEsperadaExtranjera = tarifasData.find(t =>
+      t.clase.toLowerCase() === "particulares" &&
+      t.descripcion_vehiculo.toLowerCase().includes("hasta 800 kg") &&
+      t.grupo === "1"
+    );
+
+    if (!tarifaEsperadaExtranjera) {
+      fail('No se encontró la tarifa esperada para el caso de prueba extranjera.');
+    }
+
+    // AQUI ES EL CAMBIO: Usa las constantes MOCKED_USD_RATE y MOCKED_EUR_TO_USD_FACTOR
+    const danosCosasEsperadoExtranjeraUSD = tarifaEsperadaExtranjera.extranjera_danos_cosas_usd ?? ((tarifaEsperadaExtranjera.extranjera_danos_cosas_eur ?? 0) * MOCKED_EUR_TO_USD_FACTOR);
+    const danosPersonasEsperadoExtranjeraUSD = tarifaEsperadaExtranjera.extranjera_danos_personas_usd ?? ((tarifaEsperadaExtranjera.extranjera_danos_personas_eur ?? 0) * MOCKED_EUR_TO_USD_FACTOR);
+    const primaAnualEsperadoExtranjeraUSD = tarifaEsperadaExtranjera.extranjera_prima_anual_usd ?? ((tarifaEsperadaExtranjera.extranjera_prima_anual_eur ?? 0) * MOCKED_EUR_TO_USD_FACTOR);
+
+    let primaTotalDolarEsperadoExtranjera = primaAnualEsperadoExtranjeraUSD;
+    // Si 'use_grua' es true en el requestBody, se debe sumar el costo de la grúa.
+    if (requestBody.data.carData.use_grua) {
+        primaTotalDolarEsperadoExtranjera += (tarifaEsperadaExtranjera.prima_servicio_grua_usd || 0);
+    }
+
+    // === INICIO DE LA CORRECCIÓN CLAVE PARA BS ===
+    // La prima total en BS debe calcularse a partir de la prima total en USD (que ya incluye la grúa)
+    // y luego multiplicarse por la tasa de cambio USD a BS.
+    const primaTotalBsEsperadoExtranjera = primaTotalDolarEsperadoExtranjera * MOCKED_USD_RATE;
+    // === FIN DE LA CORRECCIÓN CLAVE PARA BS ===
+
+    const resultExtranjera = await QuotationService.processQuotation(requestBody);
+
+    expect(resultExtranjera.primaTotal.dolar).toBeCloseTo(primaTotalDolarEsperadoExtranjera, 2);
+    expect(resultExtranjera.primaTotal.bs).toBeCloseTo(primaTotalBsEsperadoExtranjera, 2); // Esta es la línea corregida
+    expect(resultExtranjera.coberturas.danosPersonas).toBeCloseTo(danosPersonasEsperadoExtranjeraUSD, 2);
+    expect(resultExtranjera.coberturas.danosCosas).toBeCloseTo(danosCosasEsperadoExtranjeraUSD, 2);
+
+    // OJO: Estos expect de calledTimes deben ser correctos para la suma de todas las llamadas en el beforeEach
+    // Si ejecutas dos tests, cada uno llamará una vez, entonces el segundo test verá el contador en 2.
+    // Esto es correcto si cada test es una ejecución "real" del servicio.
+    // Si quieres que cada test sea completamente aislado, considera un beforeEach que solo mockee getBcvRates
+    // y no verifique el contador global. O resetea las llamadas por cada 'describe' o 'test' con afterEach.
+    // Para la lógica actual, deberían ser llamados una vez por cada test.
+    expect(bcvService.getBcvRates).toHaveBeenCalledTimes(1);
+    expect(carService.findOrCreateCar).toHaveBeenCalledTimes(1);
+    expect(pool.execute).toHaveBeenCalledTimes(1);
+  });
 });

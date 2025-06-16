@@ -138,7 +138,7 @@ class QuotationService {
 
     // Calcular la prima total en Bolívares (VES) usando la prima anual EUR * TASA_CAMBIO_BS_USD
     // Este fue el punto de ajuste para que el cálculo de Bs sea como se espera.
-    const primaTotalBs = parseFloat((primaAnualEUR * TASA_CAMBIO_BS_USD).toFixed(2));
+    const primaTotalBs = parseFloat((primaTotalDolar * TASA_CAMBIO_BS_USD).toFixed(2));
 
     // La prima_total_euro para la base de datos es el valor original en EUR de la tarifa.
     const primaTotalEuroCalculated = primaAnualEUR;
