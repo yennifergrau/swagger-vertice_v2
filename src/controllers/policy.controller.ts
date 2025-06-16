@@ -1,15 +1,80 @@
+// src/controllers/policy.controller.ts
 import { Request, Response } from 'express';
 import fs from 'fs';
 import path from 'path';
 import { PDFDocument } from 'pdf-lib';
-import axios from 'axios';
+import axios from 'axios'; // Asegúrate de que axios esté importado
 
 import { insertPolicy } from '../services/policy.service';
 import pool from '../config/db';
 import { fillPdfTemplate } from '../utils/fillPdfTemplate';
 import { Policy } from '../interfaces/policy.interface';
 
-const SYPAGO_BASE_URL = 'http://localhost:4500/getNotifications';
+// Define una interfaz para la respuesta esperada del endpoint /sypago/auth
+interface SyPagoAuthResponse {
+    access_token: string;
+    exp?: number;
+}
+
+// Base URL para tu propia API donde se exponen los endpoints de SyPago
+const MY_SYPAGO_API_BASE_URL = 'http://localhost:4500'; // ¡VERIFICA QUE ESTA URL ES CORRECTA!
+
+// Variables para almacenar el token de SyPago y su expiración
+let sypagoAuthToken: string | null = null;
+let sypagoTokenExpiry: number = 0; // Timestamp de expiración
+
+// Función para obtener el token de SyPago, con caché simple
+const getSyPagoToken = async (): Promise<string> => {
+    const now = Date.now();
+    if (sypagoAuthToken && sypagoTokenExpiry > now + (5 * 60 * 1000)) {
+        console.log('[SyPago] Reutilizando token existente.');
+        return sypagoAuthToken as string;
+    }
+
+    try {
+        console.log('[SyPago] Obteniendo nuevo token de SyPago desde /sypago/auth...');
+        const response = await axios.post<SyPagoAuthResponse>(`${MY_SYPAGO_API_BASE_URL}/sypago/auth`);
+
+        // console.log('[SyPago] Respuesta de /sypago/auth (status):', response.status);
+        // console.log('[SyPago] Respuesta de /sypago/auth (headers):', response.headers);
+        // console.log('[SyPago] Respuesta de /sypago/auth (data):', response.data);
+        // ----------------------------------------------------------
+
+        // Validación adicional para asegurarnos de que la propiedad existe
+        if (!response.data || typeof response.data.access_token !== 'string') {
+            console.error('[SyPago] La respuesta de /sypago/auth no contiene un "access_token" válido o no es un string.');
+            throw new Error('Formato de respuesta inesperado de SyPago auth.');
+        }
+
+        sypagoAuthToken = response.data.access_token;
+        sypagoTokenExpiry = response.data.exp ? response.data.exp * 1000 : now + (3600 * 1000);
+        console.log('[SyPago] Token obtenido y almacenado.');
+        return sypagoAuthToken;
+    } catch (error: any) {
+        // --- ¡CAMBIO CRUCIAL AQUÍ: Imprime el objeto de error completo! ---
+        console.error('Error completo al obtener el token de SyPago:', error);
+
+        // Si es un error de Axios, imprime más detalles
+        if (axios.isAxiosError(error)) {
+            if (error.response) {
+                // El servidor respondió con un código de estado fuera del rango 2xx
+                console.error('Detalles de la respuesta de error de Axios:', {
+                    status: error.response.status,
+                    data: error.response.data,
+                    headers: error.response.headers,
+                });
+            } else if (error.request) {
+                // La solicitud fue hecha pero no se recibió respuesta (ej. servidor no responde)
+                console.error('Error de solicitud Axios: No se recibió respuesta del servidor. Request:', error.request);
+            } else {
+                // Algo más causó el error al configurar la solicitud
+                console.error('Error de configuración Axios:', error.message);
+            }
+        }
+        // -------------------------------------------------------------
+        throw new Error('No se pudo obtener el token de autenticación de SyPago.');
+    }
+};
 
 export const authorizePolicy = async (req: Request, res: Response) => {
     try {
@@ -44,10 +109,18 @@ export const authorizePolicy = async (req: Request, res: Response) => {
 
         let paymentStatus: string;
         try {
-            const sypagoResponse = await axios.post(`${SYPAGO_BASE_URL}/getNotifications`, {
+            // 1. Obtener el token de SyPago
+            const token = await getSyPagoToken();
+
+            // 2. Usar el token en el encabezado de la solicitud a /getNotifications
+            const sypagoResponse = await axios.post(`${MY_SYPAGO_API_BASE_URL}/getNotifications`, {
                 id_transaction: transaction_id
+            }, {
+                headers: {
+                    'SyPago-Token': token
+                }
             });
-            paymentStatus = sypagoResponse.data.status;
+            paymentStatus = sypagoResponse.data.data.status; // Asumiendo que el estado está en response.data.data.status
         } catch (sypagoError: any) {
             console.error('Error al consultar /getNotifications de SyPago:', sypagoError.response ? sypagoError.response.data : sypagoError.message);
             return res.status(500).json({
@@ -59,7 +132,7 @@ export const authorizePolicy = async (req: Request, res: Response) => {
 
         if (paymentStatus !== 'ACCP') {
             console.warn(`Intento de emisión de póliza para orden ${orden_id} con pago NO APROBADO. Transaction ID: ${transaction_id}, Estado: ${paymentStatus}`);
-            return res.status(402).json({ // 402 Payment Required
+            return res.status(402).json({
                 error: `El pago para la transacción ${transaction_id} no ha sido aprobado. Estado actual: ${paymentStatus}. No se puede emitir la póliza.`,
                 status: 'PAYMENT_REJECTED_OR_PENDING'
             });
@@ -95,10 +168,10 @@ export const authorizePolicy = async (req: Request, res: Response) => {
             issue_date: `${ahora.getFullYear()}-${(ahora.getMonth()+1).toString().padStart(2,'0')}-${ahora.getDate().toString().padStart(2,'0')}`,
             start_date: `${ahora.getFullYear()}-${(ahora.getMonth()+1).toString().padStart(2,'0')}-${ahora.getDate().toString().padStart(2,'0')}`,
             end_date: `${expiracion.getFullYear()}-${(expiracion.getMonth()+1).toString().padStart(2,'0')}-${expiracion.getDate().toString().padStart(2,'0')}`,
-            policy_status: 'APPROVED', // Ya que el pago fue aprobado
-            transaction_id: transaction_id, // Guardar el ID de la transacción
-            payment_status: paymentStatus,  // Guardar el estado final del pago ('ACCP')
-            pdf_url: pdfUrl                 // Guardar la URL del PDF
+            policy_status: 'APPROVED',
+            transaction_id: transaction_id,
+            payment_status: paymentStatus,
+            pdf_url: pdfUrl
         };
 
         await insertPolicy(policyToInsert);
@@ -118,7 +191,6 @@ export const authorizePolicy = async (req: Request, res: Response) => {
 
         const outputPath = path.join(__dirname, '../public/polizas', `${numeroPoliza}.pdf`);
         await fillPdfTemplate(datosPdf, outputPath);
-
 
         return res.status(201).json({
             estado: 'APPROVED',

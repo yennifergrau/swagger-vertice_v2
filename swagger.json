@@ -634,21 +634,22 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "isTomador": { "type": "boolean", "example": true },
-                  "orden_id": { "type": "string", "example": "0001002" },
-                  "carData": { "type": "object" },
-                  "generalData": { "type": "object" },
-                  "generalDataTomador": { "type": "object" },
-                  "transaction_id": { "type": "string", "example": "TXN987654" }
+                  "isTomador": { "type": "boolean", "example": true, "description": "Indica si el tomador y el asegurado son la misma persona. Si es true, generalDataTomador puede ser omitido o se asumirá que es igual a generalData." },
+                  "orden_id": { "type": "integer", "example": 1, "description": "ID de la orden de cotización previamente generada. (Número entero)" },
+                  "carData": { "$ref": "#/components/schemas/CarData" },
+                  "generalData": { "$ref": "#/components/schemas/GeneralData" },
+                  "generalDataTomador": { "$ref": "#/components/schemas/GeneralDataTomador" },
+                  "transaction_id": { "type": "string", "example": "TXN987654", "description": "ID de la transacción de pago obtenida de SyPago." }
                 },
-                "required": ["isTomador", "orden_id", "carData", "generalData", "transaction_id"]
+                "required": ["orden_id", "carData", "generalData", "transaction_id"]
               },
               "examples": {
                 "Solo titular": {
-                  "summary": "Emisión solo titular",
+                  "summary": "Emisión solo titular (isTomador: true)",
                   "value": {
                     "isTomador": true,
-                    "orden_id": "0001002",
+                    "orden_id": 1,
+                    "transaction_id": "TXN987654",
                     "generalData": {
                       "policy_holder_type_document": "V",
                       "policy_holder_document_number": 12345678,
@@ -677,15 +678,15 @@
                       "passenger_qty": 5,
                       "driver": "Juan Pérez",
                       "use_grua": true
-                    },
-                    "transaction_id": "TXN987654"
+                    }
                   }
                 },
-                "Con tomador": {
-                  "summary": "Emisión tomador distinto al titular",
+                "Con tomador distinto al titular": {
+                  "summary": "Emisión con tomador distinto al titular (isTomador: false)",
                   "value": {
-                    "isTomador": true,
-                    "orden_id": "0001002",
+                    "isTomador": false,
+                    "orden_id": 2,
+                    "transaction_id": "TXN987654",
                     "generalData": {
                       "policy_holder_type_document": "V",
                       "policy_holder_document_number": 12345678,
@@ -726,8 +727,7 @@
                       "insured_city": "Guarenas",
                       "insured_municipality": "Plaza",
                       "isseur_store": "Sucursal Este"
-                    },
-                    "transaction_id": "TXN987654"
+                    }
                   }
                 }
               }
@@ -895,7 +895,8 @@
           "insured_city": { "type": "string" },
           "insured_municipality": { "type": "string" },
           "isseur_store": { "type": "string" }
-        }
+        },
+        "required": ["type_document", "insured_document", "insured_phone", "insured_email", "insured", "insured_address", "insured_state", "insured_city", "insured_municipality", "isseur_store"]
       },
       "QuotationResult": {
         "type": "object",
