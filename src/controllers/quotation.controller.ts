@@ -39,7 +39,7 @@ class QuotationController {
         res.status(404).json({ message: error.message });
       } else if (error.message.includes('tasa de cambio')) {
         res.status(503).json({ message: 'Error al obtener la tasa de cambio: ' + error.message });
-      } else if (error.message.includes('servicio de coche') || error.message.includes('registro de cotización')) {
+      } else if (error.message.includes('servicio de carro') || error.message.includes('registro de cotización')) {
         res.status(500).json({ message: 'Error al procesar datos del vehículo o guardar la cotización: ' + error.message });
       }
       else {

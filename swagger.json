@@ -464,9 +464,10 @@
                       }
                     },
                     "required": ["otp", "document_info", "account"]
-                  }
+                  },
+                  "order_id": { "type": "number", "example": 1 }
                 },
-                "required": ["internal_id", "group_id", "account", "amount", "concept", "notification_urls", "receiving_user"]
+                "required": ["internal_id", "group_id", "account", "amount", "concept", "notification_urls", "receiving_user", "order_id"]
               },
               "example": {
                 "internal_id": "TX12345678",
@@ -495,7 +496,8 @@
                     "type": "CELE",
                     "number": "04147232513"
                   }
-                }
+                },
+                "order_id": 1
               },
               "examples": {
                 "Usuario de prueba": {
@@ -527,7 +529,8 @@
                         "type": "CELE",
                         "number": "04241345485"
                       }
-                    }
+                    },
+                    "order_id": 1
                   }
                 }
               }
@@ -536,7 +539,7 @@
         },
         "responses": {
           "200": {
-            "description": "Transacción ejecutada correctamente.\n\n<b>Nota importante:</b> Para que el pago sea guardado en la base de datos, es obligatorio enviar el campo <code>order_id</code> en el body de la petición, con el valor correspondiente al <b>order_id</b> de la cotización existente en el sistema.\n\n<pre>\nEjemplo de body válido para guardar el pago:\n{\n  ...otros_campos,\n  \"order_id\": 1\n}\n</pre>",
+            "description": "Transacción ejecutada correctamente.",
             "content": {
               "application/json": {
                 "schema": {

@@ -3,7 +3,7 @@ import pool from '../config/db';
 export interface PaymentData {
   policy_id: number;
   payment_amount: number;
-  payment_date: string; // ISO string or 'YYYY-MM-DD HH:mm:ss'
+  payment_date: string;
   payment_method: string;
   transaction_id: string;
 }

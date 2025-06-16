@@ -157,6 +157,7 @@ class QuotationService {
 
     // 3. Guardar el coche o encontrarlo en la base de datos (`cars` table)
     const carId = await carService.findOrCreateCar({
+        type_plate: carData.type_plate,
         plate: carData.plate,
         brand: carData.brand,
         model: carData.model,
@@ -169,7 +170,8 @@ class QuotationService {
         type_vehiculo: carData.type_vehiculo,
         use: carData.use,
         passenger_qty: carData.passenger_qty,
-        driver: carData.driver
+        driver: carData.driver,
+        use_grua: carData.use_grua,
     });
 
     // 4. Preparar y guardar el registro de cotización en la tabla `orders`
