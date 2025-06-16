@@ -1,4 +1,4 @@
-import pool from '../db';
+import pool from '../config/db';
 
 export async function getOrderAndCarData(orderId: number) {
   // Busca la orden y el auto asociado

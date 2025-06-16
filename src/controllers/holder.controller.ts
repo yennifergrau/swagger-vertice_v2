@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import pool from '../db';
+import pool from '../config/db';
 
 // Trae todos los asegurados (policy holders) con sus órdenes, pólizas, autos y pagos en formato plano (una fila por combinación)
 export const getUsersReport = async (req: Request, res: Response) => {

@@ -3,7 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const { PDFDocument } = require('pdf-lib');
 import { insertPolicy } from '../services/policy.service';
-import pool from '../db';
+import pool from '../config/db';
 import { fillPdfTemplate } from '../utils/fillPdfTemplate'
 
 export const authorizePolicy = async (req: Request, res: Response) => {

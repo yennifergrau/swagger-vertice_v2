@@ -1,7 +1,7 @@
 // src/auth/auth.service.ts
 import jwt from 'jsonwebtoken';
 import dotenv from 'dotenv';
-import pool from '../db';
+import pool from '../config/db';
 import bcrypt from 'bcrypt';
 import { RowDataPacket } from 'mysql2/promise';
 import { User } from '../interfaces/user.interface';

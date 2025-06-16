@@ -1,6 +1,6 @@
 
 import { Request, Response } from 'express';
-import pool from '../db';
+import pool from '../config/db';
 
 export const verifyPlateCtrl = async (req: Request, res: Response) => {
   try {

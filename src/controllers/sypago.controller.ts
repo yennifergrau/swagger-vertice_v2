@@ -1,6 +1,6 @@
 import axios from 'axios';
 import { Request, Response } from 'express';
-import pool from '../db';
+import pool from '../config/db';
 import { savePayment } from '../services/payment.service';
 
 let sypagoAccessToken: string | null = null;

@@ -5,7 +5,7 @@ import dotenv from 'dotenv';
 import morgan from 'morgan';
 import swaggerUi from 'swagger-ui-express';
 import swaggerDocument from '../swagger.json';
-import pool from "./db";
+import pool from "./config/db";
 import { createUser } from './services/auth.service';
 //Routes
 import authRouter from './routes/auth';
