@@ -1,7 +1,7 @@
 import pool from '../config/db';
 
 export interface PaymentData {
-  policy_id: number;
+  order_id: number;
   payment_amount: number;
   payment_date: string;
   payment_method: string;
@@ -9,11 +9,11 @@ export interface PaymentData {
 }
 
 export async function savePayment(payment: PaymentData) {
-  const { policy_id, payment_amount, payment_date, payment_method, transaction_id } = payment;
+  const { order_id, payment_amount, payment_date, payment_method, transaction_id } = payment;
   const [result]: any = await pool.query(
-    `INSERT INTO payments (policy_id, payment_amount, payment_date, payment_method, transaction_id, created_at)
+    `INSERT INTO payments (order_id, payment_amount, payment_date, payment_method, transaction_id, created_at)
      VALUES (?, ?, ?, ?, ?, NOW())`,
-    [policy_id, payment_amount, payment_date, payment_method, transaction_id]
+    [order_id, payment_amount, payment_date, payment_method, transaction_id]
   );
   return result.insertId;
 }

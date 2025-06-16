@@ -86,7 +86,7 @@ export const authorizePolicy = async (req: Request, res: Response) => {
             });
         }
 
-        const [orders]: any = await pool.query('SELECT * FROM orders WHERE id = ?', [orden_id]);
+        const [orders]: any = await pool.query('SELECT * FROM orders WHERE order_id = ?', [orden_id]);
         if (!orders || orders.length === 0) {
             return res.status(400).json({
                 error: `El orden_id ${orden_id} no existe en la tabla orders.`
@@ -112,7 +112,6 @@ export const authorizePolicy = async (req: Request, res: Response) => {
             // 1. Obtener el token de SyPago
             const token = await getSyPagoToken();
 
-            // 2. Usar el token en el encabezado de la solicitud a /getNotifications
             const sypagoResponse = await axios.post(`${MY_SYPAGO_API_BASE_URL}/getNotifications`, {
                 id_transaction: transaction_id
             }, {
@@ -120,7 +119,7 @@ export const authorizePolicy = async (req: Request, res: Response) => {
                     'SyPago-Token': token
                 }
             });
-            paymentStatus = sypagoResponse.data.data.status; // Asumiendo que el estado está en response.data.data.status
+            paymentStatus = sypagoResponse.data.status; 
         } catch (sypagoError: any) {
             console.error('Error al consultar /getNotifications de SyPago:', sypagoError.response ? sypagoError.response.data : sypagoError.message);
             return res.status(500).json({

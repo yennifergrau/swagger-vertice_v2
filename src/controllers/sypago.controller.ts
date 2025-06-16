@@ -108,13 +108,13 @@ export const verifyCodeAndPay = async (req: Request, res: Response) => {
       }
     );
     // Buscar policy_id solo usando order_id
-    let policy_id: number | null = null;
+    let order_id: number | null = null;
     if (datos.order_id) {
       try {
-        const [policies]: any = await pool.query('SELECT policy_id FROM policies WHERE order_id = ?', [datos.order_id]);
-        console.log('Resultado de búsqueda de policies:', policies);
-        if (policies && policies.length > 0) {
-          policy_id = policies[0].policy_id;
+        const [orders]: any = await pool.query('SELECT order_id FROM orders WHERE order_id = ?', [datos.order_id]);
+        console.log('Resultado de búsqueda de policies:', orders);
+        if (orders && orders.length > 0) {
+          order_id = orders[0].order_id;
         }
       } catch (e) {
         console.warn('No se pudo buscar policy_id por order_id:', e);
@@ -126,16 +126,16 @@ export const verifyCodeAndPay = async (req: Request, res: Response) => {
     const payment_date = new Date().toISOString().slice(0, 19).replace('T', ' ');
     const transaction_id = response.data.transaction_id;
     const payment_method = datos.account?.type || 'SyPago';
-    if (policy_id && payment_amount && payment_method && transaction_id) {
+    if (order_id && payment_amount && payment_method && transaction_id) {
       await savePayment({
-        policy_id,
+        order_id,
         payment_amount,
         payment_date,
         payment_method,
         transaction_id
       });
     } else {
-      console.warn('No se guardó el pago: faltan datos requeridos', { policy_id, payment_amount, payment_method, transaction_id });
+      console.warn('No se guardó el pago: faltan datos requeridos', { order_id, payment_amount, payment_method, transaction_id });
     }
     return res.status(200).json(response.data);
   } catch (err: any) {
@@ -170,7 +170,11 @@ export const notificationSypago = async (req: Request, res: Response) => {
         }
       }
     );
-    const status = response.data.status || 'PENDING';
+    console.log(response.data.status);
+    
+    let status = response.data?.status || 'PENDING';
+    console.log('estatus obetenido',status);
+    
     // // Actualizar el status en la base de datos si existe
     // await pool.query('UPDATE payments SET status = ? WHERE transaction_id = ?', [status, id_transaction]);
     return res.status(200).json( response.data );

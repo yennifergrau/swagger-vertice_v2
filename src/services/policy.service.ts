@@ -2,12 +2,12 @@ import pool from '../config/db';
 import { Policy } from '../interfaces/policy.interface';
 
 export async function getOrderAndCarData(orderId: number) {
-  const [orders]: any = await pool.query('SELECT * FROM orders WHERE id = ?', [orderId]);
+  const [orders]: any = await pool.query('SELECT * FROM orders WHERE order_id = ?', [orderId]);
   if (!Array.isArray(orders) || orders.length === 0) {
     throw new Error('Orden no encontrada');
   }
   const order = orders[0];
-  const [cars]: any = await pool.query('SELECT * FROM cars WHERE id = ?', [order.car_id]);
+  const [cars]: any = await pool.query('SELECT * FROM cars WHERE car_id = ?', [order.car_id]);
   if (!Array.isArray(cars) || cars.length === 0) {
     throw new Error('Auto no encontrado');
   }
