@@ -19,6 +19,7 @@ import policyRouter from './routes/policy';
 import confirmPolicyRouter from './routes/confirm';
 import publicSypagoRouter from './routes/publicSypago'; // Importar el router publicSypago
 import userReportRouter from './routes/holder';
+import path from 'path';
 
 dotenv.config();
 
@@ -56,6 +57,8 @@ app.use('/authorize', policyRouter);
 app.use('/confirm', confirmPolicyRouter);
 // Reporte de policy holders
 app.use('/holders', userReportRouter);
+
+app.use('/public', express.static(path.join(__dirname, '../public')));
 
 // Script para crear un usuario de prueba automáticamente si no existe
 (async () => {

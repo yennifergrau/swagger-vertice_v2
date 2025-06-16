@@ -81,13 +81,13 @@ export const authorizePolicy = async (req: Request, res: Response) => {
       hora_expiracion
     };
 
-     const outputPath = path.join(__dirname, '../../public/polizas', `${numeroPoliza}.pdf`);
+     const outputPath = path.join(__dirname, '../public/polizas', `${numeroPoliza}.pdf`);
     await fillPdfTemplate(datosPdf, outputPath);
 
     return res.status(201).json({
       estado: 'APPROVED',
       numero_poliza: numeroPoliza,
-      url_pdf: `http://localhost:4500/public/polizas/${numeroPoliza}.pdf`
+      url_pdf: `https://services-ui-vertice-qa.polizaqui.com/public/polizas/${numeroPoliza}.pdf`
     });
   } catch (error: any) {
     console.error('Error en authorizePolicy:', error);
