@@ -6,12 +6,12 @@ export const getUsersReport = async (req: Request, res: Response) => {
   try {
     const [rows]: any = await pool.query(`
       SELECT o.policy_holder_document_number, o.policy_holder, o.policy_holder_type_document,
-             o.id as order_id, o.*, p.policy_id, p.policy_number, p.car_id as policy_car_id, p.*,
+             o.order_id, o.*, p.policy_id, p.policy_number, p.car_id as policy_car_id, p.*,
              c.*, pay.*
       FROM orders o
-      LEFT JOIN policies p ON o.id = p.order_id
+      LEFT JOIN policies p ON o.order_id = p.order_id
       LEFT JOIN cars c ON p.car_id = c.id
-      LEFT JOIN payments pay ON p.policy_id = pay.policy_id
+      LEFT JOIN payments pay ON p.policy_id = pay.order_id
     `);
     res.json(rows);
   } catch (error) {
