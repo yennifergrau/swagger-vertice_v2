@@ -196,7 +196,7 @@ class QuotationService {
       insured_state: generalDataTomador.insured_state,
       insured_city: generalDataTomador.insured_city,
       insured_municipality: generalDataTomador.insured_municipality,
-      insured_isseur_store: generalDataTomador.isseur_store,
+      insured_isseur_store: generalDataTomador.isseur_store, // Este es el campo que daba error, ahora accesible
       prima_total_euro: primaTotalEuroCalculated,
       prima_total_dolar: quotationResult.primaTotal.dolar,
       prima_total_bs: quotationResult.primaTotal.bs,

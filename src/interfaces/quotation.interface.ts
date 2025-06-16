@@ -11,7 +11,7 @@ export interface GeneralData {
   policy_holder_state: string;
   policy_holder_city: string;
   policy_holder_municipality: string;
-  isseur_store: string;
+  isseur_store: string; // Ya existe, pero lo mantengo por contexto
 }
 
 export interface CarData {
@@ -21,8 +21,8 @@ export interface CarData {
   model: string;
   version?: string; // Opcional
   year: number;
-  color?: string; // Opcional
-  gearbox?: string; // Opcional
+  color: string; // Opcional
+  gearbox: string; // Opcional
   carroceria_serial_number: string;
   motor_serial_number: string;
   type_vehiculo: string; // Corresponde a 'clase' en el JSON
@@ -42,7 +42,7 @@ export interface GeneralDataTomador {
   insured_state: string;
   insured_city: string;
   insured_municipality: string;
-  isseur_store: string;
+  isseur_store: string; // ¡Añadido este campo faltante!
 }
 
 export interface QuotationRequest {
@@ -90,7 +90,7 @@ export interface Tarifa {
 
 // Para guardar el registro de la cotización en la tabla 'orders'
 export interface CotizacionRecord {
-  id?: number;
+  order_id?: number; // Hacemos 'order_id' opcional ya que es autoincremental en la BD.
   car_id: number; // PK de la tabla 'cars'
   policy_holder_type_document: string;
   policy_holder_document_number: string; // Ajustado a string según tu DDL

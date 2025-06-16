@@ -1,7 +1,7 @@
 // src/interfaces/car.interface.ts
 
 export interface Car {
-  id?: number;
+  card_id?: number;
   type_plate: string;
   plate: string;
   brand: string;

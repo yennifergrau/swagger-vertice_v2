@@ -6,22 +6,26 @@ import { ResultSetHeader, RowDataPacket } from 'mysql2/promise';
 class CarService {
   async findOrCreateCar(carData: Car): Promise<number> {
     try {
-      const [rows] = await pool.execute<RowDataPacket[]>(
-        'SELECT id FROM cars WHERE carroceria_serial_number = ?',
-        [carData.carroceria_serial_number]
+      // La consulta busca ÚNICAMENTE por 'plate' como deseas
+      const [rows] = await pool.execute<Array<{car_id: number} & RowDataPacket>>(
+        'SELECT car_id FROM cars WHERE plate = ?', // Solo busca por plate
+        [carData.plate]
       );
 
       if (rows.length > 0) {
-        const existingCarId = (rows[0] as Car).id;
+        const existingCarId = rows[0].car_id;
         if (existingCarId) {
-            console.log(`[CarService] Coche existente encontrado: ID ${existingCarId}`);
+            console.log(`[CarService] Carro existente encontrado: ID ${existingCarId} (por placa).`);
             return existingCarId;
         } else {
-            throw new Error('Existing car found but ID is missing from the query result.');
+            // Este caso es poco probable si la consulta es SELECT car_id y rows.length > 0
+            throw new Error('Existing car found but car_id is missing from the query result.');
         }
       } else {
+        // Si no se encuentra por placa, se inserta un nuevo registro.
+        // La columna carroceria_serial_number se inserta como cualquier otro campo,
+        // sin que su unicidad sea verificada por la base de datos (ya que el INDEX UNIQUE será eliminado).
         const [result] = await pool.execute<ResultSetHeader>(
-          // ¡CAMBIO AQUÍ! Añade comillas invertidas alrededor de `use`
           `INSERT INTO cars (type_plate, plate, brand, model, version, year, color, gearbox, carroceria_serial_number, motor_serial_number, type_vehiculo, \`use\`, passenger_qty, driver, use_grua, createdAt, updatedAt)
            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
           [
@@ -33,21 +37,22 @@ class CarService {
             carData.year,
             carData.color || null,
             carData.gearbox || null,
-            carData.carroceria_serial_number,
+            carData.carroceria_serial_number, // El campo se envía a la BD
             carData.motor_serial_number,
             carData.type_vehiculo,
-            carData.use, // Este valor no necesita comillas, solo el nombre de la columna en el SQL
+            carData.use,
             carData.passenger_qty,
             carData.driver,
             carData.use_grua,
           ]
         );
-        console.log(`[CarService] Nuevo coche creado con ID: ${result.insertId}`);
+        console.log(`[CarService] Nuevo carro creado con ID: ${result.insertId} (placa: ${carData.plate}).`);
         return result.insertId;
       }
     } catch (error) {
       console.error('[CarService] Error en findOrCreateCar:', error);
-      throw new Error('Error en el servicio de coche: no se pudo encontrar o crear.');
+      // Después de eliminar el índice UNIQUE, este error no debería ser 'Duplicate entry' para carroceria_serial_number.
+      throw new Error('Error en el servicio de carro: no se pudo encontrar o crear.');
     }
   }
 }
