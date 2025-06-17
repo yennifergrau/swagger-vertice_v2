@@ -1,24 +1,23 @@
 // src/services/quotation.service.ts
 import pool from '../config/db';
 import { QuotationRequest, QuotationResult, Tarifa, CotizacionRecord } from '../interfaces/quotation.interface';
-import carService from './car.service';
-import { getBcvRates } from './bcv.service';
-import { ResultSetHeader } from 'mysql2/promise';
+import carService from './car.service'; // Asegúrate de que este path es correcto
+import { getBcvRates } from './bcv.service'; // Asegúrate de que este path es correcto
+import { ResultSetHeader, RowDataPacket } from 'mysql2/promise'; // RowDataPacket se añadió si se usa en otro lugar, ResultSetHeader es para inserciones
 import fs from 'fs';
 import path from 'path';
+import { DuplicatePlateError } from '../errors/custom.errors'; // <<-- IMPORTANTE: Asegúrate de que este archivo existe
 
 // Carga el archivo tarifas.json una sola vez al iniciar la aplicación
 let tarifas: Tarifa[] = [];
 const loadTarifas = () => {
   try {
-    // Asegúrate de que la ruta sea correcta para tu entorno de ejecución
     const filePath = path.resolve(process.cwd(), 'tarifas.json');
     const fileContent = fs.readFileSync(filePath, 'utf-8');
     tarifas = JSON.parse(fileContent);
     console.log('[Quotation Service] Tarifas cargadas exitosamente.');
   } catch (error) {
     console.error('[Quotation Service] Error al cargar tarifas.json:', error);
-    // Es crítico si las tarifas no cargan, la aplicación no funcionaría correctamente.
     throw new Error('Error crítico: No se pudieron cargar las tarifas de RCV.');
   }
 };
@@ -31,14 +30,16 @@ class QuotationService {
    * Procesa el cálculo y la persistencia de la cotización RCV.
    * @param requestBody Los datos de la solicitud de cotización.
    * @returns El resultado de la cotización (primas y coberturas).
+   * @throws {Error} Si la tarifa no se encuentra, hay problemas con las tasas de cambio,
+   * o si la placa del vehículo ya está registrada.
    */
   async processQuotation(requestBody: QuotationRequest): Promise<QuotationResult> {
     const { generalData, carData, generalDataTomador } = requestBody.data;
 
-    // 1. Obtener las tasas de cambio (EUR y USD) del BCV
+    // Obtener tasas de cambio BCV
     const rates = await getBcvRates();
-    const TASA_CAMBIO_BS_USD = rates.USD; // Ejemplo: 36.5 Bs/USD
-    const TASA_CAMBIO_BS_EUR = rates.EUR; // Ejemplo: 39.5 Bs/EUR
+    const TASA_CAMBIO_BS_USD = rates.USD;
+    const TASA_CAMBIO_BS_EUR = rates.EUR;
 
     if (!TASA_CAMBIO_BS_USD || TASA_CAMBIO_BS_USD <= 0) {
         throw new Error('La tasa de cambio USD del BCV es inválida o cero.');
@@ -47,12 +48,10 @@ class QuotationService {
         throw new Error('La tasa de cambio EUR del BCV es inválida o cero. Necesaria para conversiones.');
     }
 
-    // Calcular el factor de conversión de EUR a USD
-    // Si tenemos Bs/EUR y Bs/USD, entonces (Bs/EUR) / (Bs/USD) nos da USD por EUR
     const EUR_TO_USD_FACTOR = TASA_CAMBIO_BS_EUR / TASA_CAMBIO_BS_USD;
     console.log(`[Quotation Service] Factor de conversión EUR a USD: ${EUR_TO_USD_FACTOR.toFixed(4)}`);
 
-    // 2. Buscar la tarifa correspondiente en el JSON
+    // Lógica para encontrar la tarifa
     const tarifaEncontrada = tarifas.find(t => {
         const normalizedTypePlate = carData.type_plate.toLowerCase().trim();
         const normalizedTypeVehiculo = carData.type_vehiculo.toLowerCase().trim();
@@ -60,7 +59,6 @@ class QuotationService {
         const normalizedClase = t.clase.toLowerCase().trim();
         const normalizedDescripcionVehiculo = t.descripcion_vehiculo.toLowerCase().trim();
 
-        // Lógica de coincidencia de tarifas detallada (mantener la misma lógica que tenías)
         if (normalizedClase.includes(normalizedTypeVehiculo) || normalizedTypeVehiculo.includes(normalizedClase)) {
             if (normalizedDescripcionVehiculo === normalizedUse) {
                 return true;
@@ -87,7 +85,7 @@ class QuotationService {
                 if (normalizedUse.includes("suburbanos") && t.grupo === "16") return true;
                 if (normalizedUse.includes("interurbanos") && t.grupo === "17") return true;
             } else if (normalizedClase === "vehículos rutas foráneas" && normalizedTypeVehiculo.includes("rutas foraneas")) {
-                if (t.grupo === "18") return true;
+                 if (t.grupo === "18") return true;
             } else if (normalizedClase === "vehículos rústicos de doble tracción." && normalizedTypeVehiculo.includes("rustico")) {
                  if (t.grupo === "19") return true;
             } else if (normalizedClase === "otros vehículos" && normalizedTypeVehiculo === "motocicleta") {
@@ -107,42 +105,34 @@ class QuotationService {
       throw new Error(`No se encontró una tarifa para el tipo de vehículo "${carData.type_vehiculo}" y uso "${carData.use}" especificados.`);
     }
 
-    let danosCosas: number = 0; // Valor final en USD
-    let danosPersonas: number = 0; // Valor final en USD
+    // Cálculo de primas
+    let danosCosas: number = 0;
+    let danosPersonas: number = 0;
     let primaAnualUSD: number = 0;
-    let primaAnualEUR: number = 0; // Este es el valor base anual en EUR de la tarifa
+    let primaAnualEUR: number = 0;
     const primaServicioGrua: number = tarifaEncontrada.prima_servicio_grua_usd || 0;
 
-    // Asignar valores basados en el tipo de placa (nacional/extranjera)
     if (carData.type_plate.toLowerCase() === 'nacional') {
-      // Si el campo USD no existe o es null/undefined, se usa el campo EUR y se convierte a USD.
       danosCosas = tarifaEncontrada.nacional_danos_cosas_usd ?? ((tarifaEncontrada.nacional_danos_cosas_eur ?? 0) * EUR_TO_USD_FACTOR);
       danosPersonas = tarifaEncontrada.nacional_danos_personas_usd ?? ((tarifaEncontrada.nacional_danos_personas_eur ?? 0) * EUR_TO_USD_FACTOR);
       primaAnualUSD = tarifaEncontrada.nacional_prima_anual_usd ?? ((tarifaEncontrada.nacional_prima_anual_eur ?? 0) * EUR_TO_USD_FACTOR);
-      primaAnualEUR = tarifaEncontrada.nacional_prima_anual_eur ?? 0; // Almacenar el valor EUR original
+      primaAnualEUR = tarifaEncontrada.nacional_prima_anual_eur ?? 0;
     } else if (carData.type_plate.toLowerCase() === 'extranjera') {
-      // Similar para Extranjera, se da prioridad a USD, si no, se convierte de EUR a USD.
       danosCosas = tarifaEncontrada.extranjera_danos_cosas_usd ?? ((tarifaEncontrada.extranjera_danos_cosas_eur ?? 0) * EUR_TO_USD_FACTOR);
       danosPersonas = tarifaEncontrada.extranjera_danos_personas_usd ?? ((tarifaEncontrada.extranjera_danos_personas_eur ?? 0) * EUR_TO_USD_FACTOR);
       primaAnualUSD = tarifaEncontrada.extranjera_prima_anual_usd ?? ((tarifaEncontrada.extranjera_prima_anual_eur ?? 0) * EUR_TO_USD_FACTOR);
-      primaAnualEUR = tarifaEncontrada.extranjera_prima_anual_eur ?? 0; // Almacenar el valor EUR original
+      primaAnualEUR = tarifaEncontrada.extranjera_prima_anual_eur ?? 0;
     } else {
         throw new Error("Tipo de placa ('nacional' o 'extranjera') no especificado o inválido.");
     }
 
-    // Calcular la prima total en USD
     let primaTotalDolar = primaAnualUSD;
     if (carData.use_grua) {
       primaTotalDolar += primaServicioGrua;
     }
 
-    // Calcular la prima total en Bolívares (VES) usando la prima anual EUR * TASA_CAMBIO_BS_USD
-    // Este fue el punto de ajuste para que el cálculo de Bs sea como se espera.
     const primaTotalBs = parseFloat((primaTotalDolar * TASA_CAMBIO_BS_USD).toFixed(2));
-
-    // La prima_total_euro para la base de datos es el valor original en EUR de la tarifa.
     const primaTotalEuroCalculated = primaAnualEUR;
-
 
     const quotationResult: QuotationResult = {
       primaTotal: {
@@ -150,33 +140,46 @@ class QuotationService {
         bs: primaTotalBs,
       },
       coberturas: {
-        danosPersonas: parseFloat(danosPersonas.toFixed(2)), // Redondear coberturas a 2 decimales
+        danosPersonas: parseFloat(danosPersonas.toFixed(2)),
         danosCosas: parseFloat(danosCosas.toFixed(2)),
       },
     };
 
-    // 3. Guardar el coche o encontrarlo en la base de datos (`cars` table)
-    const carId = await carService.findOrCreateCar({
-        type_plate: carData.type_plate,
-        plate: carData.plate,
-        brand: carData.brand,
-        model: carData.model,
-        version: carData.version || null, // Se asume que Car.version en la interfaz acepta string | null
-        year: carData.year,
-        color: carData.color || null,     // Se asume que Car.color en la interfaz acepta string | null
-        gearbox: carData.gearbox || null, // Se asume que Car.gearbox en la interfaz acepta string | null
-        carroceria_serial_number: carData.carroceria_serial_number,
-        motor_serial_number: carData.motor_serial_number,
-        type_vehiculo: carData.type_vehiculo,
-        use: carData.use,
-        passenger_qty: carData.passenger_qty,
-        driver: carData.driver,
-        use_grua: carData.use_grua,
-    });
+    // ** Lógica para crear el coche o lanzar error si la placa está duplicada **
+    let carId: number;
+    try {
+        carId = await carService.createCarAndValidatePlate({ // Llama a la función renombrada
+            type_plate: carData.type_plate,
+            plate: carData.plate,
+            brand: carData.brand,
+            model: carData.model,
+            version: carData.version || null,
+            year: carData.year,
+            color: carData.color || null,
+            gearbox: carData.gearbox || null,
+            carroceria_serial_number: carData.carroceria_serial_number,
+            motor_serial_number: carData.motor_serial_number,
+            type_vehiculo: carData.type_vehiculo,
+            use: carData.use,
+            passenger_qty: carData.passenger_qty,
+            driver: carData.driver,
+            use_grua: carData.use_grua,
+        });
+    } catch (error) {
+        // Captura el error específico de placa duplicada desde el servicio de coche
+        if (error instanceof DuplicatePlateError) {
+            console.error('[Quotation Service] Error de placa duplicada al procesar cotización:', error.message);
+            // Relanza un error con un mensaje más amigable para el controlador/frontend
+            throw new Error(`Error de validación: ${error.message}`);
+        }
+        // Re-lanza otros errores inesperados del servicio de coche
+        throw error;
+    }
 
-    // 4. Preparar y guardar el registro de cotización en la tabla `orders`
+    // Preparar y guardar el registro de cotización en la tabla `orders`
     const cotizacionRecord: CotizacionRecord = {
-      car_id: carId,
+      order_id: 0, // order_id suele ser autoincremental, el valor aquí no importa para la inserción
+      car_id: carId, // Usa el ID del coche obtenido/creado
       policy_holder_type_document: generalData.policy_holder_type_document,
       policy_holder_document_number: String(generalData.policy_holder_document_number),
       policy_holder_phone: generalData.policy_holder_phone,
@@ -196,7 +199,7 @@ class QuotationService {
       insured_state: generalDataTomador.insured_state,
       insured_city: generalDataTomador.insured_city,
       insured_municipality: generalDataTomador.insured_municipality,
-      insured_isseur_store: generalDataTomador.isseur_store, // Este es el campo que daba error, ahora accesible
+      insured_isseur_store: generalDataTomador.isseur_store,
       prima_total_euro: primaTotalEuroCalculated,
       prima_total_dolar: quotationResult.primaTotal.dolar,
       prima_total_bs: quotationResult.primaTotal.bs,

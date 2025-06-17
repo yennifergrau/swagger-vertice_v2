@@ -2,29 +2,33 @@
 import pool from '../config/db';
 import { Car } from '../interfaces/car.interface';
 import { ResultSetHeader, RowDataPacket } from 'mysql2/promise';
+import { DuplicatePlateError } from '../errors/custom.errors'; // <<-- IMPORTAR EL NUEVO ERROR
 
 class CarService {
-  async findOrCreateCar(carData: Car): Promise<number> {
+  /**
+   * Crea un nuevo coche si la placa no existe. Si la placa ya existe, lanza un error.
+   * La validación se realiza ÚNICAMENTE por la placa.
+   * @param carData Los datos del coche a crear.
+   * @returns El ID del coche recién creado.
+   * @throws {DuplicatePlateError} Si ya existe un coche con la misma placa.
+   * @throws {Error} Si ocurre un error inesperado al intentar crear el coche.
+   */
+  async createCarAndValidatePlate(carData: Car): Promise<number> { // <<-- CAMBIO DE NOMBRE DE FUNCIÓN
     try {
-      // La consulta busca ÚNICAMENTE por 'plate' como deseas
+      // **** LÓGICA DE BÚSQUEDA SOLO POR 'plate' Y SELECCIONANDO 'car_id' ****
       const [rows] = await pool.execute<Array<{car_id: number} & RowDataPacket>>(
-        'SELECT car_id FROM cars WHERE plate = ?', // Solo busca por plate
+        'SELECT car_id FROM cars WHERE plate = ?', // <<-- Aquí se busca por 'plate' y se selecciona 'car_id'
         [carData.plate]
       );
 
       if (rows.length > 0) {
-        const existingCarId = rows[0].car_id;
-        if (existingCarId) {
-            console.log(`[CarService] Carro existente encontrado: ID ${existingCarId} (por placa).`);
-            return existingCarId;
-        } else {
-            // Este caso es poco probable si la consulta es SELECT car_id y rows.length > 0
-            throw new Error('Existing car found but car_id is missing from the query result.');
-        }
+        // Si se encuentra un coche con la misma placa, se lanza el error
+        const existingCarId = rows[0].car_id; // <<-- Accediendo a 'car_id'
+        console.log(`[CarService] Intento de crear coche con placa duplicada: ${carData.plate}, ID existente: ${existingCarId}`);
+        throw new DuplicatePlateError(`Ya existe un vehículo con la placa "${carData.plate}" registrada en el sistema.`);
       } else {
-        // Si no se encuentra por placa, se inserta un nuevo registro.
-        // La columna carroceria_serial_number se inserta como cualquier otro campo,
-        // sin que su unicidad sea verificada por la base de datos (ya que el INDEX UNIQUE será eliminado).
+        // Si la placa no existe, se procede con la inserción del nuevo coche.
+        // `carroceria_serial_number` se incluye como un campo de datos más, sin validación de unicidad de la BD aquí.
         const [result] = await pool.execute<ResultSetHeader>(
           `INSERT INTO cars (type_plate, plate, brand, model, version, year, color, gearbox, carroceria_serial_number, motor_serial_number, type_vehiculo, \`use\`, passenger_qty, driver, use_grua, createdAt, updatedAt)
            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
@@ -37,7 +41,7 @@ class CarService {
             carData.year,
             carData.color || null,
             carData.gearbox || null,
-            carData.carroceria_serial_number, // El campo se envía a la BD
+            carData.carroceria_serial_number, // <<-- El campo se mantiene para insertar
             carData.motor_serial_number,
             carData.type_vehiculo,
             carData.use,
@@ -46,13 +50,16 @@ class CarService {
             carData.use_grua,
           ]
         );
-        console.log(`[CarService] Nuevo carro creado con ID: ${result.insertId} (placa: ${carData.plate}).`);
+        console.log(`[CarService] Nuevo coche creado con ID: ${result.insertId} (placa: ${carData.plate}).`);
         return result.insertId;
       }
     } catch (error) {
-      console.error('[CarService] Error en findOrCreateCar:', error);
-      // Después de eliminar el índice UNIQUE, este error no debería ser 'Duplicate entry' para carroceria_serial_number.
-      throw new Error('Error en el servicio de carro: no se pudo encontrar o crear.');
+      // Re-lanzar DuplicatePlateError si es de ese tipo
+      if (error instanceof DuplicatePlateError) {
+        throw error;
+      }
+      console.error('[CarService] Error en createCarAndValidatePlate:', error);
+      throw new Error('Error en el servicio de coche: no se pudo crear o validar.');
     }
   }
 }
