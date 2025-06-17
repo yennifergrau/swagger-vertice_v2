@@ -20,7 +20,8 @@ export const verifyPlateCtrl = async (req: Request, res: Response) => {
     const [policies]: any = await pool.query(
       `
       SELECT
-        p.policy_id
+        p.policy_id,
+        p.order_id
       FROM
         policies p
       JOIN
@@ -32,7 +33,12 @@ export const verifyPlateCtrl = async (req: Request, res: Response) => {
     );
 
     if (Array.isArray(policies) && policies.length > 0) {
-      return res.json({ message: 'El Vehículo tiene póliza' });
+      const orderId = policies[0].order_id;
+      return res.json(
+        {
+          order_id: orderId,
+          message: 'El Vehículo tiene póliza'
+        });
     } else {
       return res.json({ message: 'El Vehículo no tiene póliza' });
     }

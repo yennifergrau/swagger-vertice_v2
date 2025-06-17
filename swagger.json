@@ -225,7 +225,7 @@
                 "Placa no existe": {
                   "summary": "El Vehículo no tiene póliza",
                   "value": {
-                    "plate": "ABC123"
+                    "plate": "ABC321"
                   }
                 }
               }
@@ -244,14 +244,14 @@
                   }
                 },
                 "examples": {
-                  "Placa existe": { "value": { "message": "El Vehículo tiene póliza" } },
+                  "Placa existe": { "value": { "order_id": "1", "message": "El Vehículo tiene póliza" } },
                   "Placa no existe": { "value": { "message": "El Vehículo no tiene póliza" } }
                 }
               }
             }
           },
           "400": { "description": "Faltan datos requeridos" },
-          "401": { "description": "No autorizado" },
+          "401": { "description": "Token no proporcionado. Acceso denegado." },
           "500": { "description": "Error interno del servidor" }
         }
       }
@@ -631,20 +631,20 @@
                 "type": "object",
                 "properties": {
                   "isTomador": { "type": "boolean", "example": true, "description": "Indica si el tomador y el asegurado son la misma persona. Si es true, generalDataTomador puede ser omitido o se asumirá que es igual a generalData." },
-                  "orden_id": { "type": "integer", "example": 1, "description": "ID de la orden de cotización previamente generada. (Número entero)" },
+                  "order_id": { "type": "integer", "example": 1, "description": "ID de la orden de cotización previamente generada. (Número entero)" },
                   "carData": { "$ref": "#/components/schemas/CarData" },
                   "generalData": { "$ref": "#/components/schemas/GeneralData" },
                   "generalDataTomador": { "$ref": "#/components/schemas/GeneralDataTomador" },
                   "transaction_id": { "type": "string", "example": "TXN987654", "description": "ID de la transacción de pago obtenida de SyPago." }
                 },
-                "required": ["orden_id", "carData", "generalData", "transaction_id"]
+                "required": ["order_id", "carData", "generalData", "transaction_id"]
               },
               "examples": {
                 "Solo titular": {
                   "summary": "Emisión solo titular (isTomador: true)",
                   "value": {
                     "isTomador": true,
-                    "orden_id": 1,
+                    "order_id": 1,
                     "transaction_id": "TXN987654",
                     "generalData": {
                       "policy_holder_type_document": "V",
@@ -681,7 +681,7 @@
                   "summary": "Emisión con tomador distinto al titular (isTomador: false)",
                   "value": {
                     "isTomador": false,
-                    "orden_id": 2,
+                    "order_id": 2,
                     "transaction_id": "TXN987654",
                     "generalData": {
                       "policy_holder_type_document": "V",
