@@ -43,10 +43,11 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 // Autenticacion
 app.use('/auth', authRouter);
 // Cotizacion
-app.use('/cotizacion', cotizacionRouter);
-// Verifica Placa
 app.use('/verify', verifyPlateRouter); // Verifica Placa
 // Sypago
+app.use('/cotizacion', cotizacionRouter);
+// Verifica Placa
+
 app.use('/sypago', authSypagoRouter); // Autenticación Sypago
 app.use('/', publicSypagoRouter); // Bancos y Tasa
 app.use('/otp', otpSypagoRouter); // Solicita OTP

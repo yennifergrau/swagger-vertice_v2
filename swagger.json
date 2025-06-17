@@ -7,8 +7,8 @@
   },
   "tags": [
     { "name": "Autenticación", "description": "Operaciones de login y autenticación" },
-    { "name": "Cotizacion", "description": "Cotización de pólizas RCV" },
     { "name": "Verificar placa", "description": "Verificación de placas y duplicados" },
+    { "name": "Cotizacion", "description": "Cotización de pólizas RCV" },
     { "name": "SyPago", "description": "Integración con SyPago (pagos y OTP)" },
     { "name": "Póliza", "description": "Emisión y confirmación de pólizas" }
   ],
@@ -52,6 +52,65 @@
             }
           },
           "401": { "description": "Credenciales inválidas" }
+        }
+      }
+    },
+    "/verify": {
+      "post": {
+        "tags": ["Verificar placa"],
+        "summary": "Verificar si una placa ya está asociada a una póliza previa",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "policy_holder_type_document": { "type": "string", "example": "V" },
+                  "policy_holder_document_number": { "type": "string", "example": "12345678" },
+                  "plate": { "type": "string", "example": "ABC123" }
+                },
+                "required": ["policy_holder_type_document", "policy_holder_document_number", "plate"]
+              },
+              "examples": {
+                "Placa existe": {
+                  "summary": "El Vehículo tiene póliza",
+                  "value": {
+                    "plate": "ABC123"
+                  }
+                },
+                "Placa no existe": {
+                  "summary": "El Vehículo no tiene póliza",
+                  "value": {
+                    "plate": "ABC321"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Resultado de la verificación de la placa",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": { "type": "string", "example": "El Vehículo tiene póliza" }
+                  }
+                },
+                "examples": {
+                  "Placa existe": { "value": { "order_id": "1", "message": "El Vehículo tiene póliza" } },
+                  "Placa no existe": { "value": { "message": "El Vehículo no tiene póliza" } }
+                }
+              }
+            }
+          },
+          "400": { "description": "Faltan datos requeridos" },
+          "401": { "description": "Token no proporcionado. Acceso denegado." },
+          "500": { "description": "Error interno del servidor" }
         }
       }
     },
@@ -197,65 +256,7 @@
         }
       }
     },
-    "/verify": {
-      "post": {
-        "tags": ["Verificar placa"],
-        "summary": "Verificar si una placa ya está asociada a una póliza previa",
-        "security": [{ "bearerAuth": [] }],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "policy_holder_type_document": { "type": "string", "example": "V" },
-                  "policy_holder_document_number": { "type": "string", "example": "12345678" },
-                  "plate": { "type": "string", "example": "ABC123" }
-                },
-                "required": ["policy_holder_type_document", "policy_holder_document_number", "plate"]
-              },
-              "examples": {
-                "Placa existe": {
-                  "summary": "El Vehículo tiene póliza",
-                  "value": {
-                    "plate": "ABC123"
-                  }
-                },
-                "Placa no existe": {
-                  "summary": "El Vehículo no tiene póliza",
-                  "value": {
-                    "plate": "ABC321"
-                  }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Resultado de la verificación de la placa",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "message": { "type": "string", "example": "El Vehículo tiene póliza" }
-                  }
-                },
-                "examples": {
-                  "Placa existe": { "value": { "order_id": "1", "message": "El Vehículo tiene póliza" } },
-                  "Placa no existe": { "value": { "message": "El Vehículo no tiene póliza" } }
-                }
-              }
-            }
-          },
-          "400": { "description": "Faltan datos requeridos" },
-          "401": { "description": "Token no proporcionado. Acceso denegado." },
-          "500": { "description": "Error interno del servidor" }
-        }
-      }
-    },
+
     "/sypago/auth": {
       "post": {
         "tags": ["SyPago"],
@@ -742,14 +743,17 @@
                       "type": "string",
                       "example": "POL123456"
                     },
-                    "url_pdf": { "type": "string", "example": "https://url.poliza.com/poliza.pdf" },
+                    "url_pdf":{
+                      "type":"string",
+                      "example":"https://url.poliza.com/poliza.pdf"
+                    },
                     "estado": { "type": "string", "example": "APPROVED" }
                   }
                 },
                 "example": {
                   "numero_poliza": "POL123456",
-                  "url_pdf": "https://url.poliza.com/poliza.pdf",
-                  "estado": "APPROVED"
+                  "estado": "APPROVED",
+                  "url_pdf": "https://url.poliza.com/poliza.pdf"
                 }
               }
             }
@@ -815,7 +819,8 @@
                 "example": {
                   "message": "Confirmación exitosa",
                   "status": true,
-                  "estado": "APPROVED"
+                  "estado": "APPROVED",
+                  "url_pdf": "https://url.poliza.com/poliza.pdf"
                 }
               }
             }

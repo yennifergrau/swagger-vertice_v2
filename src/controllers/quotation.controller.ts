@@ -1,4 +1,3 @@
-// src/controllers/quotation.controller.ts
 import { Request, Response } from 'express';
 import quotationService from '../services/quotation.service';
 import { QuotationRequest, QuotationResult } from '../interfaces/quotation.interface';
@@ -8,7 +7,6 @@ class QuotationController {
     try {
       const quotationRequest: QuotationRequest = req.body;
 
-      // Validaciones básicas del Request Body
       if (!quotationRequest.data || !quotationRequest.data.generalData || !quotationRequest.data.carData) {
         res.status(400).json({ message: 'Request Body incompleto. Faltan generalData o carData.' });
         return;
@@ -33,13 +31,12 @@ class QuotationController {
       console.error('Error al cotizar RCV:', error);
       // ** Manejo de errores específicos **
       if (error.message.includes('Error de validación: Ya existe un vehículo con la placa')) {
-        res.status(409).json({ message: error.message }); // <<-- HTTP 409 Conflict para placa duplicada
+        res.status(409).json({ message: error.message });
       } else if (error.message.includes('No se encontró tarifa')) {
         res.status(404).json({ message: error.message });
       } else if (error.message.includes('tasa de cambio')) {
         res.status(503).json({ message: 'Error al obtener la tasa de cambio: ' + error.message });
       } else if (error.message.includes('servicio de coche') || error.message.includes('registro de cotización')) {
-        // Errores generales durante el procesamiento o guardado
         res.status(500).json({ message: 'Error al procesar datos del vehículo o guardar la cotización: ' + error.message });
       } else {
         // Otros errores inesperados
