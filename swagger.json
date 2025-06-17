@@ -216,19 +216,15 @@
                 "required": ["policy_holder_type_document", "policy_holder_document_number", "plate"]
               },
               "examples": {
-                "Placa no existe": {
-                  "summary": "Placa no registrada",
+                "Placa existe": {
+                  "summary": "El Vehículo tiene póliza",
                   "value": {
-                    "policy_holder_type_document": "V",
-                    "policy_holder_document_number": "12345678",
-                    "plate": "NOEXISTE1"
+                    "plate": "ABC123"
                   }
                 },
-                "Placa ya existe": {
-                  "summary": "Placa ya asociada a póliza",
+                "Placa no existe": {
+                  "summary": "El Vehículo no tiene póliza",
                   "value": {
-                    "policy_holder_type_document": "V",
-                    "policy_holder_document_number": "12345678",
                     "plate": "ABC123"
                   }
                 }
@@ -244,12 +240,12 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "message": { "type": "string", "example": "La placa no existe" }
+                    "message": { "type": "string", "example": "El Vehículo tiene póliza" }
                   }
                 },
                 "examples": {
-                  "Placa no existe": { "value": { "message": "La placa no existe" } },
-                  "Placa ya existe": { "value": { "message": "La placa ya existe" } }
+                  "Placa existe": { "value": { "message": "El Vehículo tiene póliza" } },
+                  "Placa no existe": { "value": { "message": "El Vehículo no tiene póliza" } }
                 }
               }
             }
