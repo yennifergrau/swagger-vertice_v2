@@ -10,7 +10,7 @@ export const getUsersReport = async (req: Request, res: Response) => {
              c.*, pay.*
       FROM orders o
       LEFT JOIN policies p ON o.order_id = p.order_id
-      LEFT JOIN cars c ON p.car_id = c.id
+      LEFT JOIN cars c ON p.car_id = c.car_id
       LEFT JOIN payments pay ON p.policy_id = pay.order_id
     `);
     res.json(rows);

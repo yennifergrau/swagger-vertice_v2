@@ -24,9 +24,9 @@ export async function insertPolicy(policyData: Policy) {
     start_date,
     end_date,
     policy_status,
-    transaction_id, // Nuevo campo
-    payment_status, // Nuevo campo
-    pdf_url // Nuevo campo
+    transaction_id,
+    payment_status, 
+    pdf_url 
   } = policyData;
 
   const today = new Date();
@@ -79,7 +79,7 @@ export async function confirmPolicyStatus(reference: string, status: string) {
     throw new Error(`status debe ser uno de: ${validStatuses.join(', ')}`);
   }
   const [result]: any = await pool.query(
-    'UPDATE policies SET policy_status = ? WHERE policy_number = ?',
+    'SELECT policy_number FROM policies WHERE policy_number = ?',
     [status, reference]
   );
   if (result.affectedRows === 0) {

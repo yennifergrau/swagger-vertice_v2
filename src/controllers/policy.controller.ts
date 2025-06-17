@@ -1,29 +1,25 @@
-// src/controllers/policy.controller.ts
 import { Request, Response } from 'express';
 import fs from 'fs';
 import path from 'path';
 import { PDFDocument } from 'pdf-lib';
-import axios from 'axios'; // Asegúrate de que axios esté importado
+import axios from 'axios';
 
 import { insertPolicy } from '../services/policy.service';
 import pool from '../config/db';
 import { fillPdfTemplate } from '../utils/fillPdfTemplate';
 import { Policy } from '../interfaces/policy.interface';
 
-// Define una interfaz para la respuesta esperada del endpoint /sypago/auth
 interface SyPagoAuthResponse {
     access_token: string;
     exp?: number;
 }
 
-// Base URL para tu propia API donde se exponen los endpoints de SyPago
-const MY_SYPAGO_API_BASE_URL = 'http://localhost:4500'; // ¡VERIFICA QUE ESTA URL ES CORRECTA!
+const MY_SYPAGO_API_BASE_URL = 'http://localhost:4500';
 
-// Variables para almacenar el token de SyPago y su expiración
 let sypagoAuthToken: string | null = null;
-let sypagoTokenExpiry: number = 0; // Timestamp de expiración
+let sypagoTokenExpiry: number = 0;
 
-// Función para obtener el token de SyPago, con caché simple
+
 const getSyPagoToken = async (): Promise<string> => {
     const now = Date.now();
     if (sypagoAuthToken && sypagoTokenExpiry > now + (5 * 60 * 1000)) {
