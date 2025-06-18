@@ -13,7 +13,6 @@ const loadTarifas = () => {
     const filePath = path.resolve(process.cwd(), 'tarifas.json');
     const fileContent = fs.readFileSync(filePath, 'utf-8');
     tarifas = JSON.parse(fileContent);
-    console.log('[Quotation Service] Tarifas cargadas exitosamente.');
   } catch (error) {
     console.error('[Quotation Service] Error al cargar tarifas.json:', error);
     throw new Error('Error crítico: No se pudieron cargar las tarifas de RCV.');
@@ -23,24 +22,21 @@ const loadTarifas = () => {
 loadTarifas();
 
 class QuotationService {
-  /**
-   * Procesa el cálculo y la persistencia de la cotización RCV.
-   * @param requestBody Los datos de la solicitud de cotización.
-   * @returns El resultado de la cotización (primas y coberturas).
-   * @throws {Error} Si la tarifa no se encuentra, hay problemas con las tasas de cambio,
-   * o si la placa del vehículo ya está registrada.
-   */
   async processQuotation(requestBody: QuotationRequest): Promise<QuotationResult> {
     const { isTomador, generalData, carData, generalDataTomador } = requestBody.data;
 
-    if (isTomador && !generalDataTomador) {
-        throw new Error("Faltan datos de 'generalDataTomador' cuando isTomador es true (el tomador es diferente del titular).");
+    // Se invierte la lógica de la validación:
+    // Si isTomador es FALSE (es decir, el tomador NO es el mismo que el titular),
+    // ENTONCES generalDataTomador DEBE estar presente.
+    // Si no está, lanzamos el error.
+    if (!isTomador && !generalDataTomador) {
+        throw new Error("Faltan datos de 'generalDataTomador' cuando isTomador es false (el tomador es diferente del titular).");
     }
 
     // Obtener tasas de cambio BCV
-    // const rates = await getBcvRates(); // ESTA CAIDO EL SERVICIO
-    const TASA_CAMBIO_BS_USD = 101.08; // rates.USD;
-    const TASA_CAMBIO_BS_EUR = 117.08; // rates.EUR;
+    const rates = await getBcvRates();
+    const TASA_CAMBIO_BS_USD = rates.USD;
+    const TASA_CAMBIO_BS_EUR = rates.EUR;
 
     if (!TASA_CAMBIO_BS_USD || TASA_CAMBIO_BS_USD <= 0) {
         throw new Error('La tasa de cambio USD del BCV es inválida o cero.');
@@ -85,9 +81,9 @@ class QuotationService {
                 if (normalizedUse.includes("suburbanos") && t.grupo === "16") return true;
                 if (normalizedUse.includes("interurbanos") && t.grupo === "17") return true;
             } else if (normalizedClase === "vehículos rutas foráneas" && normalizedTypeVehiculo.includes("rutas foraneas")) {
-                 if (t.grupo === "18") return true;
+                if (t.grupo === "18") return true;
             } else if (normalizedClase === "vehículos rústicos de doble tracción." && normalizedTypeVehiculo.includes("rustico")) {
-                 if (t.grupo === "19") return true;
+                if (t.grupo === "19") return true;
             } else if (normalizedClase === "otros vehículos" && normalizedTypeVehiculo === "motocicleta") {
                 if (t.grupo === "20") return true;
             } else if (normalizedClase === "moto carros (c)" && normalizedTypeVehiculo === "motocarro") {
@@ -173,7 +169,10 @@ class QuotationService {
     }
 
     let tomadorData: GeneralDataTomador;
-    if (!isTomador) {
+    // Se invierte la lógica:
+    // Si isTomador es TRUE (Tomador = Titular), construimos tomadorData desde generalData.
+    // Si isTomador es FALSE (Tomador ≠ Titular), usamos generalDataTomador del request.
+    if (isTomador) { // Si isTomador es TRUE (el tomador ES el mismo que el titular)
       tomadorData = {
         type_document: generalData.policy_holder_type_document,
         insured_document: generalData.policy_holder_document_number,
@@ -186,8 +185,8 @@ class QuotationService {
         insured_municipality: generalData.policy_holder_municipality,
         isseur_store: generalData.isseur_store,
       };
-    } else {
-      tomadorData = generalDataTomador!;
+    } else { // Si isTomador es FALSE (el tomador NO es el mismo que el titular)
+      tomadorData = generalDataTomador!; // Sabemos que existe por la validación inicial.
     }
 
     const cotizacionRecord: CotizacionRecord = {
@@ -204,16 +203,18 @@ class QuotationService {
       policy_holder_city: generalData.policy_holder_city,
       policy_holder_municipality: generalData.policy_holder_municipality,
       isseur_store: generalData.isseur_store,
-      insured_type_document: tomadorData .type_document,
-      insured_document_number: String(tomadorData .insured_document),
-      insured_phone: tomadorData .insured_phone,
-      insured_email: tomadorData .insured_email,
-      insured: tomadorData .insured,
-      insured_address: tomadorData .insured_address,
-      insured_state: tomadorData .insured_state,
-      insured_city: tomadorData .insured_city,
-      insured_municipality: tomadorData .insured_municipality,
-      insured_isseur_store: tomadorData .isseur_store,
+
+      insured_type_document: tomadorData.type_document,
+      insured_document_number: String(tomadorData.insured_document),
+      insured_phone: tomadorData.insured_phone,
+      insured_email: tomadorData.insured_email,
+      insured: tomadorData.insured,
+      insured_address: tomadorData.insured_address,
+      insured_state: tomadorData.insured_state,
+      insured_city: tomadorData.insured_city,
+      insured_municipality: tomadorData.insured_municipality,
+      insured_isseur_store: tomadorData.isseur_store,
+
       prima_total_euro: primaTotalEuroCalculated,
       prima_total_dolar: quotationResult.primaTotal.dolar,
       prima_total_bs: quotationResult.primaTotal.bs,
