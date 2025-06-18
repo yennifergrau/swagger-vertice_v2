@@ -6,12 +6,10 @@ export interface Policy {
   issue_date: string;
   start_date: string;
   end_date: string;
-  policy_status: string; // Estado de la póliza (APPROVED, PENDING, ERROR)
-  // Nuevos campos sugeridos:
+  policy_status: string;   // Estado de la póliza (APPROVED, PENDING, ERROR)
   transaction_id?: string; // ID de la transacción de pago de SyPago
-  payment_status?: string; // Estado final del pago (ACCP, RJCT) - crucial para la lógica de tu jefa
-  pdf_url?: string;       // URL del PDF de la póliza generado
-  // Campos de auditoría (ya los tienes)
+  payment_status?: string; // Estado final del pago (ACCP, RJCT)
+  pdf_url?: string;        // URL del PDF de la póliza generado
   createdAt?: string;
   updatedAt?: string;
 }

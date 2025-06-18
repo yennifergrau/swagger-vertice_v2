@@ -621,101 +621,14 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "isTomador": { "type": "boolean", "example": false, "description": "Indica si el tomador es diferente del titular (TRUE) o si son iguales (FALSE). Si es FALSE, generalDataTomador puede ser omitido y se asumirá que es igual a generalData." },
                   "order_id": { "type": "integer", "example": 1, "description": "ID de la orden de cotización previamente generada. (Número entero)" },
-                  "carData": { "$ref": "#/components/schemas/CarData" },
-                  "generalData": { "$ref": "#/components/schemas/GeneralData" },
-                  "generalDataTomador": { "$ref": "#/components/schemas/GeneralDataTomador" }
+                  "transaction_id":  { "type": "string", "example": "TXN987654" }
                 },
-                "required": ["order_id", "carData", "generalData"]
+                "required": ["order_id", "transaction_id"]
               },
-              "examples": {
-                "Solo titular": {
-                  "summary": "Emisión solo titular (isTomador: false)",
-                  "value": {
-                    "isTomador": false,
-                    "order_id": 1,
-                    "transaction_id": "TXN987654",
-                    "generalData": {
-                      "policy_holder_type_document": "V",
-                      "policy_holder_document_number": "12345678",
-                      "policy_holder_phone": "04141234567",
-                      "policy_holder_email": "titular@email.com",
-                      "policy_holder": "Juan Pérez",
-                      "policy_holder_address": "Calle 1",
-                      "policy_holder_state": "Miranda",
-                      "policy_holder_city": "Caracas",
-                      "policy_holder_municipality": "Libertador",
-                      "isseur_store": "Sucursal Centro"
-                    },
-                    "carData": {
-                      "type_plate": "nacional",
-                      "plate": "ABC123",
-                      "brand": "Toyota",
-                      "model": "Corolla",
-                      "version": "LE",
-                      "year": 2022,
-                      "color": "Blanco",
-                      "gearbox": "Automático",
-                      "carroceria_serial_number": "1234567890",
-                      "motor_serial_number": "0987654321",
-                      "type_vehiculo": "particular",
-                      "use": "Hasta 800 kg. de peso",
-                      "passenger_qty": 5,
-                      "driver": "Juan Pérez",
-                      "use_grua": true
-                    }
-                  }
-                },
-                "Con tomador distinto al titular": {
-                  "summary": "Emisión con tomador distinto al titular (isTomador: true)",
-                  "value": {
-                    "isTomador": true,
-                    "order_id": 2,
-                    "transaction_id": "TXN987654",
-                    "generalData": {
-                      "policy_holder_type_document": "V",
-                      "policy_holder_document_number": "12345678",
-                      "policy_holder_phone": "04141234567",
-                      "policy_holder_email": "titular@email.com",
-                      "policy_holder": "Juan Pérez",
-                      "policy_holder_address": "Calle 1",
-                      "policy_holder_state": "Miranda",
-                      "policy_holder_city": "Caracas",
-                      "policy_holder_municipality": "Libertador",
-                      "isseur_store": "Sucursal Centro"
-                    },
-                    "carData": {
-                      "type_plate": "nacional",
-                      "plate": "DEF456",
-                      "brand": "Chevrolet",
-                      "model": "Aveo",
-                      "version": "LS",
-                      "year": 2020,
-                      "color": "Negro",
-                      "gearbox": "Manual",
-                      "carroceria_serial_number": "1122334455",
-                      "motor_serial_number": "5544332211",
-                      "type_vehiculo": "carga",
-                      "use": "Hasta 2 TM",
-                      "passenger_qty": 5,
-                      "driver": "Pedro Gómez",
-                      "use_grua": false
-                    },
-                    "generalDataTomador": {
-                      "type_document": "E",
-                      "insured_document": "87654321",
-                      "insured_phone": "04149876543",
-                      "insured_email": "tomador@email.com",
-                      "insured": "Pedro Gómez",
-                      "insured_address": "Calle 2",
-                      "insured_state": "Miranda",
-                      "insured_city": "Guarenas",
-                      "insured_municipality": "Plaza",
-                      "isseur_store": "Sucursal Este"
-                    }
-                  }
-                }
+              "example": {
+                "order_id": 1,
+                "transaction_id": "TXN987654"
               }
             }
           }
