@@ -140,8 +140,8 @@
                 "required": ["isTomador", "data"]
               },
               "examples": {
-                "Cotización tomador mismo titular": {
-                  "summary": "Cotización tomador igual al titular",
+                "Cotización tomador distinto al titular": {
+                  "summary": "Cotización tomador distinto al titular",
                   "value": {
                     "data": {
                       "isTomador": false,
@@ -173,12 +173,24 @@
                         "passenger_qty": 5,
                         "driver": "Juan Pérez",
                         "use_grua": true
+                      },
+                      "generalDataTomador": {
+                        "type_document": "E",
+                        "insured_document": "87654321",
+                        "insured_phone": "04149876543",
+                        "insured_email": "tomador@email.com",
+                        "insured": "Pedro Gómez",
+                        "insured_address": "Calle 2",
+                        "insured_state": "Miranda",
+                        "insured_city": "Guarenas",
+                        "insured_municipality": "Plaza",
+                        "isseur_store": "Sucursal Este"
                       }
                     }
                   }
                 },
-                "Cotización tomador distinto al titular": {
-                  "summary": "Cotización tomador distinto al titular",
+                "Cotización tomador igual al titular": {
+                  "summary": "Cotización tomador igual al titular",
                   "value": {
                     "data": {
                       "isTomador": true,
@@ -210,19 +222,7 @@
                         "passenger_qty": 5,
                         "driver": "Pedro Gómez",
                         "use_grua": false
-                      },
-                      "generalDataTomador": {
-                        "type_document": "E",
-                        "insured_document": "87654321",
-                        "insured_phone": "04149876543",
-                        "insured_email": "tomador@email.com",
-                        "insured": "Pedro Gómez",
-                        "insured_address": "Calle 2",
-                        "insured_state": "Miranda",
-                        "insured_city": "Guarenas",
-                        "insured_municipality": "Plaza",
-                        "isseur_store": "Sucursal Este"
-                      }
+                      }            
                     }
                   }
                 }
