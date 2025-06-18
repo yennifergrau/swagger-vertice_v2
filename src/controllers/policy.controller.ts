@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import fs from 'fs';
 import path from 'path';
 import { PDFDocument } from 'pdf-lib';
+import {getOrderAndCarData} from '../services/policy.service'
 import axios from 'axios';
 
 import { insertPolicy } from '../services/policy.service';
@@ -74,40 +75,35 @@ const getSyPagoToken = async (): Promise<string> => {
 
 export const authorizePolicy = async (req: Request, res: Response) => {
     try {
-        const { orden_id, carData, generalData, generalDataTomador, isTomador, transaction_id } = req.body;
+        const { order_id, transaction_id } = req.body;
 
-        if (!orden_id || !carData || !generalData || !transaction_id) {
+        if (!order_id || !transaction_id) {
             return res.status(400).json({
-                error: 'Datos incompletos o inválidos. Se requiere orden_id, carData, generalData y transaction_id.'
+                error: 'Datos incompletos o inválidos. Se requiere orden_id y transaction_id.'
             });
         }
 
-        const [orders]: any = await pool.query('SELECT * FROM orders WHERE order_id = ?', [orden_id]);
-        if (!orders || orders.length === 0) {
-            return res.status(400).json({
-                error: `El orden_id ${orden_id} no existe en la tabla orders.`
-            });
-        }
-        const order = orders[0];
-        const carId = order.car_id;
+        // Obtener datos de la orden y el vehículo
+        const { order, car } = await getOrderAndCarData(order_id);
 
+        // Verificar si ya existe una póliza vigente para este vehículo
         const hoy = new Date();
         const hoyStr = hoy.toISOString().slice(0, 10);
         const [vigente]: any = await pool.query(
             'SELECT * FROM policies WHERE car_id = ? AND policy_status = ? AND end_date >= ?',
-            [carId, 'APPROVED', hoyStr]
+            [car.car_id, 'APPROVED', hoyStr]
         );
+        
         if (vigente && vigente.length > 0) {
             return res.status(409).json({
                 error: 'Ya existe una póliza vigente para este vehículo.'
             });
         }
 
+        // Verificar estado del pago con SyPago
         let paymentStatus: string;
         try {
-            // 1. Obtener el token de SyPago
             const token = await getSyPagoToken();
-
             const sypagoResponse = await axios.post(`${MY_SYPAGO_API_BASE_URL}/getNotifications`, {
                 id_transaction: transaction_id
             }, {
@@ -117,7 +113,7 @@ export const authorizePolicy = async (req: Request, res: Response) => {
             });
             paymentStatus = sypagoResponse.data.status; 
         } catch (sypagoError: any) {
-            console.error('Error al consultar /getNotifications de SyPago:', sypagoError.response ? sypagoError.response.data : sypagoError.message);
+            console.error('Error al consultar SyPago:', sypagoError.response ? sypagoError.response.data : sypagoError.message);
             return res.status(500).json({
                 error: 'Error al verificar el estado del pago con SyPago.',
                 message: sypagoError.response ? sypagoError.response.data.message : sypagoError.message,
@@ -126,13 +122,14 @@ export const authorizePolicy = async (req: Request, res: Response) => {
         }
 
         if (paymentStatus !== 'ACCP') {
-            console.warn(`Intento de emisión de póliza para orden ${orden_id} con pago NO APROBADO. Transaction ID: ${transaction_id}, Estado: ${paymentStatus}`);
+            console.warn(`Intento de emisión de póliza para orden ${order_id} con pago NO APROBADO. Estado: ${paymentStatus}`);
             return res.status(402).json({
-                error: `El pago para la transacción ${transaction_id} no ha sido aprobado. Estado actual: ${paymentStatus}. No se puede emitir la póliza.`,
+                error: `El pago para la transacción ${transaction_id} no ha sido aprobado. Estado actual: ${paymentStatus}.`,
                 status: 'PAYMENT_REJECTED_OR_PENDING'
             });
         }
 
+        // Configurar fechas de la póliza
         const ahora = new Date();
         const expiracion = new Date();
         expiracion.setFullYear(expiracion.getFullYear() + 1);
@@ -153,51 +150,81 @@ export const authorizePolicy = async (req: Request, res: Response) => {
         const { fecha: fecha_creacion, hora: hora_creacion } = formatDate(ahora);
         const { fecha: fecha_expiracion, hora: hora_expiracion } = formatDate(expiracion);
 
+        // Generar número de póliza único
         const numeroPoliza = 'POL' + Math.floor(Math.random() * 1000000).toString().padStart(6, '0');
         const pdfUrl = `https://services-ui-vertice-qa.polizaqui.com/public/polizas/${numeroPoliza}.pdf`;
 
+        // Preparar datos para insertar en policies
         const policyToInsert: Policy = {
-            order_id: Number(orden_id),
-            car_id: carId,
+            order_id: Number(order_id),
+            car_id: car.car_id,
             policy_number: numeroPoliza,
-            issue_date: `${ahora.getFullYear()}-${(ahora.getMonth()+1).toString().padStart(2,'0')}-${ahora.getDate().toString().padStart(2,'0')}`,
-            start_date: `${ahora.getFullYear()}-${(ahora.getMonth()+1).toString().padStart(2,'0')}-${ahora.getDate().toString().padStart(2,'0')}`,
-            end_date: `${expiracion.getFullYear()}-${(expiracion.getMonth()+1).toString().padStart(2,'0')}-${expiracion.getDate().toString().padStart(2,'0')}`,
+            issue_date: ahora.toISOString().split('T')[0],
+            start_date: ahora.toISOString().split('T')[0],
+            end_date: expiracion.toISOString().split('T')[0],
             policy_status: 'APPROVED',
             transaction_id: transaction_id,
             payment_status: paymentStatus,
             pdf_url: pdfUrl
         };
 
+        // Insertar póliza en la base de datos
         await insertPolicy(policyToInsert);
 
-        const datosPdf = {
-            ...generalData,
-            ...carData,
-            policy_holder_type_document: generalData.policy_holder_type_document || 'V',
+        // Preparar datos para el PDF - ajustado a la interfaz PdfData
+        const pdfData = {
+            policy_holder: order.policy_holder,
+            policy_holder_type_document: order.policy_holder_type_document || 'V',
+            policy_holder_document_number: order.policy_holder_document_number,
+            policy_holder_address: order.policy_holder_address || '',
+            policy_holder_state: order.policy_holder_state || '',
+            policy_holder_city: order.policy_holder_city || '',
+            policy_holder_municipality: order.policy_holder_municipality || '',
+            isseur_store: order.isseur_store || 'Sucursal Principal',
+            orden_id: order_id.toString(),
             numero_poliza: numeroPoliza,
-            orden_id,
-            car_id: carId,
             fecha_creacion,
             hora_creacion,
             fecha_expiracion,
-            hora_expiracion
+            hora_expiracion,
+            plate: car.plate,
+            brand: car.brand,
+            model: car.model,
+            version: car.version || '',
+            year: car.year.toString(),
+            color: car.color || '',
+            gearbox: car.gearbox || '',
+            carroceria_serial_number: car.carroceria_serial_number || '',
+            motor_serial_number: car.motor_serial_number || '',
+            type_vehiculo: car.type_vehiculo || '',
+            use: car.use || '',
+            passenger_qty: car.passenger_qty?.toString() || '0',
+            driver: car.driver || order.policy_holder,
+            prima_total_euro: order.prima_total_euro?.toString() || '0',
+            prima_total_dolar: order.prima_total_dolar?.toString() || '0',
+            prima_total_bs: order.prima_total_bs?.toString() || '0',
+            danos_personas: order.danos_personas?.toString() || '0',
+            danos_cosas: order.danos_cosas?.toString() || '0',
+            car_id: car.car_id.toString()
         };
 
+        // Generar PDF
         const outputPath = path.join(__dirname, '../public/polizas', `${numeroPoliza}.pdf`);
-        await fillPdfTemplate(datosPdf, outputPath);
+        await fillPdfTemplate(pdfData, outputPath);
 
         return res.status(201).json({
             estado: 'APPROVED',
             numero_poliza: numeroPoliza,
-            url_pdf: pdfUrl
+            url_pdf: pdfUrl,
+            message: 'Póliza emitida exitosamente'
         });
 
     } catch (error: any) {
         console.error('Error en authorizePolicy:', error);
         return res.status(500).json({
             error: 'Error interno del servidor',
-            message: error.message
+            message: error.message,
+            details: error.stack
         });
     }
 };

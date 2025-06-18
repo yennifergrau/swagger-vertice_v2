@@ -30,6 +30,12 @@ interface PdfData {
   use: string;
   passenger_qty: string;
   driver: string;
+  prima_total_euro: string,
+            prima_total_dolar: string
+            prima_total_bs:string
+            danos_personas: string
+            danos_cosas: string
+            car_id?:string
   // use_grua?: boolean;
 }
 
