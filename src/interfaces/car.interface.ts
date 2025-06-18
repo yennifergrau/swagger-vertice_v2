@@ -1,5 +1,3 @@
-// src/interfaces/car.interface.ts
-
 export interface Car {
   card_id?: number;
   type_plate: string;

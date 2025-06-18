@@ -1,14 +1,12 @@
-// src/services/quotation.service.ts
 import pool from '../config/db';
-import { QuotationRequest, QuotationResult, Tarifa, CotizacionRecord } from '../interfaces/quotation.interface';
-import carService from './car.service'; // Asegúrate de que este path es correcto
-import { getBcvRates } from './bcv.service'; // Asegúrate de que este path es correcto
-import { ResultSetHeader, RowDataPacket } from 'mysql2/promise'; // RowDataPacket se añadió si se usa en otro lugar, ResultSetHeader es para inserciones
+import { QuotationRequest, QuotationResult, Tarifa, GeneralDataTomador, CotizacionRecord } from '../interfaces/quotation.interface';
+import carService from './car.service';
+import { getBcvRates } from './bcv.service';
+import { ResultSetHeader, RowDataPacket } from 'mysql2/promise';
 import fs from 'fs';
 import path from 'path';
-import { DuplicatePlateError } from '../errors/custom.errors'; // <<-- IMPORTANTE: Asegúrate de que este archivo existe
+import { DuplicatePlateError } from '../errors/custom.errors';
 
-// Carga el archivo tarifas.json una sola vez al iniciar la aplicación
 let tarifas: Tarifa[] = [];
 const loadTarifas = () => {
   try {
@@ -22,7 +20,6 @@ const loadTarifas = () => {
   }
 };
 
-// Cargar tarifas al inicio del módulo
 loadTarifas();
 
 class QuotationService {
@@ -34,12 +31,16 @@ class QuotationService {
    * o si la placa del vehículo ya está registrada.
    */
   async processQuotation(requestBody: QuotationRequest): Promise<QuotationResult> {
-    const { generalData, carData, generalDataTomador } = requestBody.data;
+    const { isTomador, generalData, carData, generalDataTomador } = requestBody.data;
+
+    if (isTomador && !generalDataTomador) {
+        throw new Error("Faltan datos de 'generalDataTomador' cuando isTomador es true (el tomador es diferente del titular).");
+    }
 
     // Obtener tasas de cambio BCV
-    const rates = await getBcvRates();
-    const TASA_CAMBIO_BS_USD = rates.USD;
-    const TASA_CAMBIO_BS_EUR = rates.EUR;
+    // const rates = await getBcvRates(); // ESTA CAIDO EL SERVICIO
+    const TASA_CAMBIO_BS_USD = 101.08; // rates.USD;
+    const TASA_CAMBIO_BS_EUR = 117.08; // rates.EUR;
 
     if (!TASA_CAMBIO_BS_USD || TASA_CAMBIO_BS_USD <= 0) {
         throw new Error('La tasa de cambio USD del BCV es inválida o cero.');
@@ -51,7 +52,6 @@ class QuotationService {
     const EUR_TO_USD_FACTOR = TASA_CAMBIO_BS_EUR / TASA_CAMBIO_BS_USD;
     console.log(`[Quotation Service] Factor de conversión EUR a USD: ${EUR_TO_USD_FACTOR.toFixed(4)}`);
 
-    // Lógica para encontrar la tarifa
     const tarifaEncontrada = tarifas.find(t => {
         const normalizedTypePlate = carData.type_plate.toLowerCase().trim();
         const normalizedTypeVehiculo = carData.type_vehiculo.toLowerCase().trim();
@@ -105,7 +105,6 @@ class QuotationService {
       throw new Error(`No se encontró una tarifa para el tipo de vehículo "${carData.type_vehiculo}" y uso "${carData.use}" especificados.`);
     }
 
-    // Cálculo de primas
     let danosCosas: number = 0;
     let danosPersonas: number = 0;
     let primaAnualUSD: number = 0;
@@ -135,6 +134,7 @@ class QuotationService {
     const primaTotalEuroCalculated = primaAnualEUR;
 
     const quotationResult: QuotationResult = {
+      order_id: 0,
       primaTotal: {
         dolar: parseFloat(primaTotalDolar.toFixed(2)),
         bs: primaTotalBs,
@@ -145,10 +145,9 @@ class QuotationService {
       },
     };
 
-    // ** Lógica para crear el coche o lanzar error si la placa está duplicada **
     let carId: number;
     try {
-        carId = await carService.createCarAndValidatePlate({ // Llama a la función renombrada
+        carId = await carService.createCar({
             type_plate: carData.type_plate,
             plate: carData.plate,
             brand: carData.brand,
@@ -166,20 +165,35 @@ class QuotationService {
             use_grua: carData.use_grua,
         });
     } catch (error) {
-        // Captura el error específico de placa duplicada desde el servicio de coche
         if (error instanceof DuplicatePlateError) {
             console.error('[Quotation Service] Error de placa duplicada al procesar cotización:', error.message);
-            // Relanza un error con un mensaje más amigable para el controlador/frontend
             throw new Error(`Error de validación: ${error.message}`);
         }
-        // Re-lanza otros errores inesperados del servicio de coche
         throw error;
     }
 
-    // Preparar y guardar el registro de cotización en la tabla `orders`
+    let tomadorData: GeneralDataTomador;
+    if (!isTomador) {
+      tomadorData = {
+        type_document: generalData.policy_holder_type_document,
+        insured_document: generalData.policy_holder_document_number,
+        insured_phone: generalData.policy_holder_phone,
+        insured_email: generalData.policy_holder_email,
+        insured: generalData.policy_holder,
+        insured_address: generalData.policy_holder_address,
+        insured_state: generalData.policy_holder_state,
+        insured_city: generalData.policy_holder_city,
+        insured_municipality: generalData.policy_holder_municipality,
+        isseur_store: generalData.isseur_store,
+      };
+    } else {
+      tomadorData = generalDataTomador!;
+    }
+
     const cotizacionRecord: CotizacionRecord = {
-      order_id: 0, // order_id suele ser autoincremental, el valor aquí no importa para la inserción
-      car_id: carId, // Usa el ID del coche obtenido/creado
+      order_id: 0,
+      car_id: carId,
+      isTomador: isTomador,
       policy_holder_type_document: generalData.policy_holder_type_document,
       policy_holder_document_number: String(generalData.policy_holder_document_number),
       policy_holder_phone: generalData.policy_holder_phone,
@@ -190,16 +204,16 @@ class QuotationService {
       policy_holder_city: generalData.policy_holder_city,
       policy_holder_municipality: generalData.policy_holder_municipality,
       isseur_store: generalData.isseur_store,
-      insured_type_document: generalDataTomador.type_document,
-      insured_document_number: String(generalDataTomador.insured_document),
-      insured_phone: generalDataTomador.insured_phone,
-      insured_email: generalDataTomador.insured_email,
-      insured: generalDataTomador.insured,
-      insured_address: generalDataTomador.insured_address,
-      insured_state: generalDataTomador.insured_state,
-      insured_city: generalDataTomador.insured_city,
-      insured_municipality: generalDataTomador.insured_municipality,
-      insured_isseur_store: generalDataTomador.isseur_store,
+      insured_type_document: tomadorData .type_document,
+      insured_document_number: String(tomadorData .insured_document),
+      insured_phone: tomadorData .insured_phone,
+      insured_email: tomadorData .insured_email,
+      insured: tomadorData .insured,
+      insured_address: tomadorData .insured_address,
+      insured_state: tomadorData .insured_state,
+      insured_city: tomadorData .insured_city,
+      insured_municipality: tomadorData .insured_municipality,
+      insured_isseur_store: tomadorData .isseur_store,
       prima_total_euro: primaTotalEuroCalculated,
       prima_total_dolar: quotationResult.primaTotal.dolar,
       prima_total_bs: quotationResult.primaTotal.bs,
@@ -209,16 +223,16 @@ class QuotationService {
 
     const [insertResult] = await pool.execute<ResultSetHeader>(
       `INSERT INTO orders (
-        car_id, policy_holder_type_document, policy_holder_document_number, policy_holder_phone,
+        car_id, isTomador, policy_holder_type_document, policy_holder_document_number, policy_holder_phone,
         policy_holder_email, policy_holder, policy_holder_address, policy_holder_state,
         policy_holder_city, policy_holder_municipality, isseur_store, insured_type_document,
         insured_document_number, insured_phone, insured_email, insured,
         insured_address, insured_state, insured_city, insured_municipality,
         insured_isseur_store, prima_total_euro, prima_total_dolar, prima_total_bs,
-        danos_personas, danos_cosas, createdAt, updatedAt
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
+        danos_personas, danos_cosas
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
-        cotizacionRecord.car_id, cotizacionRecord.policy_holder_type_document, cotizacionRecord.policy_holder_document_number, cotizacionRecord.policy_holder_phone,
+        cotizacionRecord.car_id, cotizacionRecord.isTomador, cotizacionRecord.policy_holder_type_document, cotizacionRecord.policy_holder_document_number, cotizacionRecord.policy_holder_phone,
         cotizacionRecord.policy_holder_email, cotizacionRecord.policy_holder, cotizacionRecord.policy_holder_address, cotizacionRecord.policy_holder_state,
         cotizacionRecord.policy_holder_city, cotizacionRecord.policy_holder_municipality, cotizacionRecord.isseur_store, cotizacionRecord.insured_type_document,
         cotizacionRecord.insured_document_number, cotizacionRecord.insured_phone, cotizacionRecord.insured_email, cotizacionRecord.insured,
@@ -227,6 +241,8 @@ class QuotationService {
         cotizacionRecord.danos_personas, cotizacionRecord.danos_cosas
       ]
     );
+
+    quotationResult.order_id = insertResult.insertId;
 
     console.log(`Cotización guardada en la tabla 'orders' con ID: ${insertResult.insertId}`);
 

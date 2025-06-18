@@ -1,65 +1,78 @@
 // src/services/car.service.ts
 import pool from '../config/db';
-import { Car } from '../interfaces/car.interface';
 import { ResultSetHeader, RowDataPacket } from 'mysql2/promise';
-import { DuplicatePlateError } from '../errors/custom.errors'; // <<-- IMPORTAR EL NUEVO ERROR
+
+// Interfaz para los datos del vehiculo, similar a CarData del request
+export interface CarDetails {
+  type_plate: string;
+  plate: string;
+  brand: string;
+  model: string;
+  version: string | null;
+  year: number;
+  color: string | null;
+  gearbox: string | null;
+  carroceria_serial_number: string;
+  motor_serial_number: string;
+  type_vehiculo: string;
+  use: string;
+  passenger_qty: number;
+  driver: string;
+  use_grua: boolean;
+}
 
 class CarService {
   /**
-   * Crea un nuevo coche si la placa no existe. Si la placa ya existe, lanza un error.
-   * La validación se realiza ÚNICAMENTE por la placa.
-   * @param carData Los datos del coche a crear.
-   * @returns El ID del coche recién creado.
-   * @throws {DuplicatePlateError} Si ya existe un coche con la misma placa.
-   * @throws {Error} Si ocurre un error inesperado al intentar crear el coche.
+   * Busca un vehiculo por su placa.
+   * @param plate La placa del vehiculo a buscar.
+   * @returns El ID del vehiculo si existe, o null si no se encuentra.
    */
-  async createCarAndValidatePlate(carData: Car): Promise<number> { // <<-- CAMBIO DE NOMBRE DE FUNCIÓN
-    try {
-      // **** LÓGICA DE BÚSQUEDA SOLO POR 'plate' Y SELECCIONANDO 'car_id' ****
-      const [rows] = await pool.execute<Array<{car_id: number} & RowDataPacket>>(
-        'SELECT car_id FROM cars WHERE plate = ?', // <<-- Aquí se busca por 'plate' y se selecciona 'car_id'
-        [carData.plate]
-      );
+  async findCarByPlate(plate: string): Promise<number | null> {
+    const [rows] = await pool.execute<RowDataPacket[]>(
+      'SELECT car_id FROM cars WHERE plate = ?',
+      [plate]
+    );
+    if (rows.length > 0) {
+      return rows[0].car_id;
+    }
+    return null;
+  }
 
-      if (rows.length > 0) {
-        // Si se encuentra un coche con la misma placa, se lanza el error
-        const existingCarId = rows[0].car_id; // <<-- Accediendo a 'car_id'
-        console.log(`[CarService] Intento de crear coche con placa duplicada: ${carData.plate}, ID existente: ${existingCarId}`);
-        throw new DuplicatePlateError(`Ya existe un vehículo con la placa "${carData.plate}" registrada en el sistema.`);
-      } else {
-        // Si la placa no existe, se procede con la inserción del nuevo coche.
-        // `carroceria_serial_number` se incluye como un campo de datos más, sin validación de unicidad de la BD aquí.
-        const [result] = await pool.execute<ResultSetHeader>(
-          `INSERT INTO cars (type_plate, plate, brand, model, version, year, color, gearbox, carroceria_serial_number, motor_serial_number, type_vehiculo, \`use\`, passenger_qty, driver, use_grua, createdAt, updatedAt)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
-          [
-            carData.type_plate,
-            carData.plate,
-            carData.brand,
-            carData.model,
-            carData.version || null,
-            carData.year,
-            carData.color || null,
-            carData.gearbox || null,
-            carData.carroceria_serial_number, // <<-- El campo se mantiene para insertar
-            carData.motor_serial_number,
-            carData.type_vehiculo,
-            carData.use,
-            carData.passenger_qty,
-            carData.driver,
-            carData.use_grua,
-          ]
-        );
-        console.log(`[CarService] Nuevo coche creado con ID: ${result.insertId} (placa: ${carData.plate}).`);
-        return result.insertId;
-      }
-    } catch (error) {
-      // Re-lanzar DuplicatePlateError si es de ese tipo
-      if (error instanceof DuplicatePlateError) {
-        throw error;
-      }
-      console.error('[CarService] Error en createCarAndValidatePlate:', error);
-      throw new Error('Error en el servicio de coche: no se pudo crear o validar.');
+  /**
+   * Crea un nuevo vehiculo en la base de datos o devuelve su ID si ya existe.
+   * Permite N cotizaciones por el mismo vehículo.
+   * @param carDetails Los detalles del vehiculo.
+   * @returns El ID del vehiculo (existente o recién creado).
+   */
+  async createCar(carDetails: CarDetails): Promise<number> {
+    // Primero, intenta encontrar el vehiculo por placa
+    const existingCarId = await this.findCarByPlate(carDetails.plate);
+
+    if (existingCarId) {
+      console.log(`[Car Service] vehiculo con placa ${carDetails.plate} ya existe. Usando ID: ${existingCarId}`);
+      return existingCarId; // Devuelve el ID del vehiculo existente
+    }
+
+    // Si no existe, inserta el nuevo vehiculo
+    const [result] = await pool.execute<ResultSetHeader>(
+      `INSERT INTO cars (
+        type_plate, plate, brand, model, version, year, color, gearbox,
+        carroceria_serial_number, motor_serial_number, type_vehiculo, \`use\`,
+        passenger_qty, driver, use_grua, createdAt, updatedAt
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
+      [
+        carDetails.type_plate, carDetails.plate, carDetails.brand, carDetails.model, carDetails.version,
+        carDetails.year, carDetails.color, carDetails.gearbox, carDetails.carroceria_serial_number,
+        carDetails.motor_serial_number, carDetails.type_vehiculo, carDetails.use, carDetails.passenger_qty,
+        carDetails.driver, carDetails.use_grua
+      ]
+    );
+
+    if (result.insertId) {
+      console.log(`[Car Service] Nuevo vehiculo creado con ID: ${result.insertId}`);
+      return result.insertId;
+    } else {
+      throw new Error('Error al crear el vehiculo: no se obtuvo un ID de inserción.');
     }
   }
 }
