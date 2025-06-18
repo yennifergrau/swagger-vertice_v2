@@ -1,9 +1,9 @@
-import { Router } from 'express';
-import { confirmPolicy } from '../controllers/policy.controller';
-import { authenticateToken } from '../middleware/auth.middleware';
+// import { Router } from 'express';
+// import { confirmPolicy } from '../controllers/policy.controller';
+// import { authenticateToken } from '../middleware/auth.middleware';
 
-const router = Router();
+// const router = Router();
 
-router.post('/', authenticateToken, confirmPolicy);
+// router.post('/', authenticateToken, confirmPolicy);
 
-export default router;
+// export default router;

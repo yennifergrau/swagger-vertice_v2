@@ -126,6 +126,7 @@
               "schema": {
                 "type": "object",
                 "properties": {
+                  "isTomador": { "type": "boolean", "description": "Indica si el tomador es diferente del titular (TRUE) o si son iguales (FALSE).", "example": false },
                   "data": {
                     "type": "object",
                     "properties": {
@@ -136,16 +137,17 @@
                     "required": ["generalData", "carData"]
                   }
                 },
-                "required": ["data"]
+                "required": ["isTomador", "data"]
               },
               "examples": {
                 "Cotización tomador mismo titular": {
                   "summary": "Cotización tomador igual al titular",
                   "value": {
                     "data": {
+                      "isTomador": false,
                       "generalData": {
                         "policy_holder_type_document": "V",
-                        "policy_holder_document_number": 12345678,
+                        "policy_holder_document_number": "12345678",
                         "policy_holder_phone": "04141234567",
                         "policy_holder_email": "titular@email.com",
                         "policy_holder": "Juan Pérez",
@@ -171,18 +173,6 @@
                         "passenger_qty": 5,
                         "driver": "Juan Pérez",
                         "use_grua": true
-                      },
-                      "generalDataTomador": {
-                        "type_document": "V",
-                        "insured_document": 12345678,
-                        "insured_phone": "04141234567",
-                        "insured_email": "titular@email.com",
-                        "insured": "Juan Pérez",
-                        "insured_address": "Calle 1",
-                        "insured_state": "Miranda",
-                        "insured_city": "Caracas",
-                        "insured_municipality": "Libertador",
-                        "isseur_store": "Sucursal Centro"
                       }
                     }
                   }
@@ -191,9 +181,10 @@
                   "summary": "Cotización tomador distinto al titular",
                   "value": {
                     "data": {
+                      "isTomador": true,
                       "generalData": {
                         "policy_holder_type_document": "V",
-                        "policy_holder_document_number": 12345678,
+                        "policy_holder_document_number": "12345678",
                         "policy_holder_phone": "04141234567",
                         "policy_holder_email": "titular@email.com",
                         "policy_holder": "Juan Pérez",
@@ -222,7 +213,7 @@
                       },
                       "generalDataTomador": {
                         "type_document": "E",
-                        "insured_document": 87654321,
+                        "insured_document": "87654321",
                         "insured_phone": "04149876543",
                         "insured_email": "tomador@email.com",
                         "insured": "Pedro Gómez",
@@ -256,7 +247,6 @@
         }
       }
     },
-
     "/sypago/auth": {
       "post": {
         "tags": ["SyPago"],
@@ -631,25 +621,24 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "isTomador": { "type": "boolean", "example": true, "description": "Indica si el tomador y el asegurado son la misma persona. Si es true, generalDataTomador puede ser omitido o se asumirá que es igual a generalData." },
+                  "isTomador": { "type": "boolean", "example": false, "description": "Indica si el tomador es diferente del titular (TRUE) o si son iguales (FALSE). Si es FALSE, generalDataTomador puede ser omitido y se asumirá que es igual a generalData." },
                   "order_id": { "type": "integer", "example": 1, "description": "ID de la orden de cotización previamente generada. (Número entero)" },
                   "carData": { "$ref": "#/components/schemas/CarData" },
                   "generalData": { "$ref": "#/components/schemas/GeneralData" },
-                  "generalDataTomador": { "$ref": "#/components/schemas/GeneralDataTomador" },
-                  "transaction_id": { "type": "string", "example": "TXN987654", "description": "ID de la transacción de pago obtenida de SyPago." }
+                  "generalDataTomador": { "$ref": "#/components/schemas/GeneralDataTomador" }
                 },
-                "required": ["order_id", "carData", "generalData", "transaction_id"]
+                "required": ["order_id", "carData", "generalData"]
               },
               "examples": {
                 "Solo titular": {
-                  "summary": "Emisión solo titular (isTomador: true)",
+                  "summary": "Emisión solo titular (isTomador: false)",
                   "value": {
-                    "isTomador": true,
+                    "isTomador": false,
                     "order_id": 1,
                     "transaction_id": "TXN987654",
                     "generalData": {
                       "policy_holder_type_document": "V",
-                      "policy_holder_document_number": 12345678,
+                      "policy_holder_document_number": "12345678",
                       "policy_holder_phone": "04141234567",
                       "policy_holder_email": "titular@email.com",
                       "policy_holder": "Juan Pérez",
@@ -679,14 +668,14 @@
                   }
                 },
                 "Con tomador distinto al titular": {
-                  "summary": "Emisión con tomador distinto al titular (isTomador: false)",
+                  "summary": "Emisión con tomador distinto al titular (isTomador: true)",
                   "value": {
-                    "isTomador": false,
+                    "isTomador": true,
                     "order_id": 2,
                     "transaction_id": "TXN987654",
                     "generalData": {
                       "policy_holder_type_document": "V",
-                      "policy_holder_document_number": 12345678,
+                      "policy_holder_document_number": "12345678",
                       "policy_holder_phone": "04141234567",
                       "policy_holder_email": "titular@email.com",
                       "policy_holder": "Juan Pérez",
@@ -715,7 +704,7 @@
                     },
                     "generalDataTomador": {
                       "type_document": "E",
-                      "insured_document": 87654321,
+                      "insured_document": "87654321",
                       "insured_phone": "04149876543",
                       "insured_email": "tomador@email.com",
                       "insured": "Pedro Gómez",
@@ -777,58 +766,6 @@
           "500": { "description": "Error interno del servidor" }
         }
       }
-    },
-    "/confirm": {
-      "post": {
-        "tags": ["Póliza"],
-        "security": [{ "bearerAuth": [] }],
-        "summary": "Confirmar Póliza Emitida",
-        "description": "Confirma el estado de una póliza ya emitida. No genera PDF.",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "reference": { "type": "string", "example": "POL123456" },
-                  "status": { "type": "string", "example": "APPROVED" }
-                },
-                "required": ["reference", "status"]
-              },
-              "example": {
-                "reference": "POL123456",
-                "status": "APPROVED"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Confirmación exitosa",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "message": { "type": "string", "example": "Confirmación exitosa" },
-                    "status": { "type": "boolean", "example": true },
-                    "estado": { "type": "string", "example": "APPROVED" }
-                  }
-                },
-                "example": {
-                  "message": "Confirmación exitosa",
-                  "status": true,
-                  "estado": "APPROVED",
-                  "url_pdf": "https://url.poliza.com/poliza.pdf"
-                }
-              }
-            }
-          },
-          "400": { "description": "Datos inválidos o póliza no encontrada" },
-          "500": { "description": "Error interno del servidor" }
-        }
-      }
     }
   },
   "components": {
@@ -850,7 +787,7 @@
         "type": "object",
         "properties": {
           "policy_holder_type_document": { "type": "string" },
-          "policy_holder_document_number": { "type": "integer" },
+          "policy_holder_document_number": { "type": "string", "example": "12345678" },
           "policy_holder_phone": { "type": "string" },
           "policy_holder_email": { "type": "string" },
           "policy_holder": { "type": "string" },
@@ -887,7 +824,7 @@
         "type": "object",
         "properties": {
           "type_document": { "type": "string" },
-          "insured_document": { "type": "integer" },
+          "insured_document": { "type": "string", "example": "87654321" },
           "insured_phone": { "type": "string" },
           "insured_email": { "type": "string" },
           "insured": { "type": "string" },
@@ -902,6 +839,7 @@
       "QuotationResult": {
         "type": "object",
         "properties": {
+          "order_id": { "type": "integer", "example": 1 },
           "primaTotal": {
             "type": "object",
             "properties": {

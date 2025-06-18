@@ -16,7 +16,7 @@ import otpSypagoRouter from './routes/otpSypago';
 import verifyCodeRouter from './routes/verifyCode';
 import getNotificationsRouter from './routes/getNotifications';
 import policyRouter from './routes/policy';
-import confirmPolicyRouter from './routes/confirm';
+// import confirmPolicyRouter from './routes/confirm';
 import publicSypagoRouter from './routes/publicSypago'; // Importar el router publicSypago
 import userReportRouter from './routes/holder';
 import path from 'path';
@@ -38,16 +38,16 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(morgan('dev'));
 
-// Routes
+// ROUTES
+// Swagger
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 // Autenticacion
 app.use('/auth', authRouter);
-// Cotizacion
-app.use('/verify', verifyPlateRouter); // Verifica Placa
-// Sypago
-app.use('/cotizacion', cotizacionRouter);
 // Verifica Placa
-
+app.use('/verify', verifyPlateRouter); // Verifica Placa
+// Cotizacion
+app.use('/cotizacion', cotizacionRouter);
+// Sypago
 app.use('/sypago', authSypagoRouter); // Autenticación Sypago
 app.use('/', publicSypagoRouter); // Bancos y Tasa
 app.use('/otp', otpSypagoRouter); // Solicita OTP
@@ -55,10 +55,10 @@ app.use('/verify', verifyCodeRouter); // Verificar OTP y Pagar
 app.use('/getNotifications', getNotificationsRouter);
 // Poliza
 app.use('/authorize', policyRouter);
-app.use('/confirm', confirmPolicyRouter);
+// app.use('/confirm', confirmPolicyRouter);
 // Reporte de policy holders
 app.use('/holders', userReportRouter);
-
+// Archivos estaticos
 app.use('/public', express.static(path.join(__dirname, '../public')));
 
 // Script para crear un usuario de prueba automáticamente si no existe
